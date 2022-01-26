@@ -2,3 +2,7 @@
 uefi/*.o
 uefi/*.lds
 root/efi/boot/helloworld.efi
+
+kernel/target
+
+*.code-workspace
