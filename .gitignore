@@ -2,3 +2,5 @@
 uefi/*.o
 uefi/*.lds
 root/efi/boot/helloworld.efi
+
+*.code-workspace
