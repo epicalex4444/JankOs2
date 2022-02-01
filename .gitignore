@@ -3,5 +3,7 @@ bootloader/*.so
 bootloader/*.efi
 
 kernel/target
+kernel/Cargo.lock
 
+*.img
 *.code-workspace
