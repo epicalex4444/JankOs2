@@ -25,6 +25,21 @@ UINT64 FileSize(EFI_FILE_HANDLE FileHandle) {
 	return ret;
 }
 
+void PlotRect(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint8_t r, uint8_t g, uint8_t b, EFI_GRAPHICS_OUTPUT_PROTOCOL *gop) {
+	EFI_GRAPHICS_OUTPUT_BLT_PIXEL pixel;
+	pixel.Blue = r;
+	pixel.Green = g;
+	pixel.Red = b;
+	uefi_call_wrapper(gop->Blt, 10, gop, &pixel, EfiBltVideoFill, 0, 0, 10, 10, width, height, NULL);
+}
+
+typedef struct {
+	EFI_GRAPHICS_OUTPUT_PROTOCOL *gop;
+	EFI_MEMORY_DESCRIPTOR *mM;
+	UINTN mMSize;
+	UINTN mMDescSize;
+} BootInfo;
+
 EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
 	InitializeLib(ImageHandle, SystemTable);
 
@@ -90,13 +105,8 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 	EFI_GRAPHICS_OUTPUT_PROTOCOL *gop;
 	uefi_call_wrapper(SystemTable->BootServices->LocateProtocol, 3, &gopGUID, NULL, (VOID**)&gop);
 
-	//get gop mode
-	EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *info;
-	UINTN SizeOfInfo;
-	EFI_STATUS status = uefi_call_wrapper(gop->QueryMode, 4, gop, gop->Mode->Mode, &SizeOfInfo, &info);
-	if (EFI_ERROR(status)) {
-		Print(L"error = %d\n", status);
-	}
+	//plot green rectangle using gop->Blt
+	PlotRect(0, 0, 200, 300, 0, 255, 0, gop);
 
 	//get memory map
 	UINTN memoryMapSize = 0;
@@ -112,8 +122,15 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 	uefi_call_wrapper(SystemTable->BootServices->ExitBootServices, 2, ImageHandle, mapKey);
 
 	//execute kernel
-	void (*KernelStart)() = ((__attribute__((sysv_abi)) void (*)()) ehdr.e_entry);
-	KernelStart();
+	void (*KernelStart)(BootInfo*) = ((__attribute__((sysv_abi)) void (*)(BootInfo*)) ehdr.e_entry);
+
+	BootInfo bootInfo;
+	bootInfo.gop = gop;
+	bootInfo.mM = memoryMap;
+	bootInfo.mMSize = memoryMapSize;
+	bootInfo.mMDescSize = descriptorSize;
+
+	KernelStart(&bootInfo);
 
 	return EFI_SUCCESS;
 }
