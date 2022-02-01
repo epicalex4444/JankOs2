@@ -1,5 +1,5 @@
 BOOTLOADER := bootloader/main.efi
-KERNEL := kernel/target/debug/kernel
+KERNEL := kernel/target/kernel/release/kernel
 IMG := JankOs.img
 OVMF := /usr/share/ovmf/x64/OVMF.fd
 STARTUP := startup.nsh
@@ -12,7 +12,7 @@ $(BOOTLOADER):
 	make -C bootloader
 
 $(KERNEL):
-	cd kernel && cargo rustc -- -C link-arg=-nostartfiles && cd ..
+	cd kernel && cargo xbuild --release --target kernel.json && cd ..
 
 $(IMG): $(BOOTLOADER) $(STARTUP) $(KERNEL)
 	dd if=/dev/zero of=$@ bs=1k count=1440
