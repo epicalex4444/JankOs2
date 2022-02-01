@@ -27,7 +27,6 @@ UINT64 FileSize(EFI_FILE_HANDLE FileHandle) {
 
 EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
 	InitializeLib(ImageHandle, SystemTable);
-	//Print(L"Hello, world!\n");
 
 	//get file handle to the kernel
 	EFI_FILE_HANDLE Volume = GetVolume(ImageHandle);
@@ -86,10 +85,35 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 		offset += size;
 	}
 
-	//execute kernel and print return value
-	int (*KernelStart)() = ((__attribute__((sysv_abi)) int (*)() ) ehdr.e_entry);
-	Print(L"kernel returns: %d\n", KernelStart());
+	//get graphics output protocol
+	EFI_GUID gopGUID = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
+	EFI_GRAPHICS_OUTPUT_PROTOCOL *gop;
+	uefi_call_wrapper(SystemTable->BootServices->LocateProtocol, 3, &gopGUID, NULL, (VOID**)&gop);
 
-	Print(L"Goodbye World!\n");
+	//get gop mode
+	EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *info;
+	UINTN SizeOfInfo;
+	EFI_STATUS status = uefi_call_wrapper(gop->QueryMode, 4, gop, gop->Mode->Mode, &SizeOfInfo, &info);
+	if (EFI_ERROR(status)) {
+		Print(L"error = %d\n", status);
+	}
+
+	//get memory map
+	UINTN memoryMapSize = 0;
+	EFI_MEMORY_DESCRIPTOR* memoryMap = NULL;
+	UINTN mapKey;
+	UINTN descriptorSize;
+	UINT32 descrptorVersion;
+	uefi_call_wrapper(SystemTable->BootServices->GetMemoryMap, 5, &memoryMapSize, memoryMap, &mapKey, &descriptorSize, &descrptorVersion);
+	uefi_call_wrapper(SystemTable->BootServices->AllocatePool, 3, EfiBootServicesData, memoryMapSize + 2 * descriptorSize, &memoryMap);
+	uefi_call_wrapper(SystemTable->BootServices->GetMemoryMap, 5, &memoryMapSize, memoryMap, &mapKey, &descriptorSize, &descrptorVersion);
+
+	//exit boot services
+	uefi_call_wrapper(SystemTable->BootServices->ExitBootServices, 2, ImageHandle, mapKey);
+
+	//execute kernel
+	void (*KernelStart)() = ((__attribute__((sysv_abi)) void (*)()) ehdr.e_entry);
+	KernelStart();
+
 	return EFI_SUCCESS;
 }
