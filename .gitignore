@@ -1,7 +1,6 @@
-*.o
-uefi/*.o
-uefi/*.lds
-root/efi/boot/helloworld.efi
+bootloader/*.o
+bootloader/*.so
+bootloader/*.efi
 
 kernel/target
 
