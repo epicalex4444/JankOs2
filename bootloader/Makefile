@@ -1,5 +1,5 @@
-INC_DIR := /usr/local/include/efi
-LIB_DIR := /usr/local/lib
+INC_DIR := /usr/include/efi
+LIB_DIR := /usr/lib
 LINK_SCRIPT := $(LIB_DIR)/elf_x86_64_efi.lds
 CRT0 := $(LIB_DIR)/crt0-efi-x86_64.o
 

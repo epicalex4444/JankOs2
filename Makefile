@@ -1,5 +1,5 @@
 BOOTLOADER := bootloader/main.efi
-KERNEL := kernel/target/kernel/release/kernel
+KERNEL := kernel/target/x86_64-kernel/release/kernel
 IMG := JankOs.img
 OVMF := /usr/share/ovmf/x64/OVMF.fd
 STARTUP := startup.nsh
@@ -12,7 +12,7 @@ $(BOOTLOADER):
 	make -C bootloader
 
 $(KERNEL):
-	cd kernel && cargo xbuild --release --target kernel.json && cd ..
+	cd kernel && cargo build --release --target x86_64-kernel.json && cd ..
 
 $(IMG): $(BOOTLOADER) $(STARTUP) $(KERNEL)
 	dd if=/dev/zero of=$@ bs=1k count=1440

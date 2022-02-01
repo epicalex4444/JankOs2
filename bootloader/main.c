@@ -27,7 +27,7 @@ UINT64 FileSize(EFI_FILE_HANDLE FileHandle) {
 
 EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
 	InitializeLib(ImageHandle, SystemTable);
-	Print(L"Hello, world!\n");
+	//Print(L"Hello, world!\n");
 
 	//get file handle to the kernel
 	EFI_FILE_HANDLE Volume = GetVolume(ImageHandle);
