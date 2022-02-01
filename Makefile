@@ -26,6 +26,9 @@ $(IMG): $(BOOTLOADER) $(STARTUP) $(KERNEL)
 qemu: $(IMG) $(OVMF)
 	qemu-system-x86_64 -drive file=$(IMG),format=raw -bios $(OVMF) -net none
 
+qemu_debug: $(IMG) $(OVMF)
+	qemu-system-x86_64 -drive file=$(IMG),format=raw -bios $(OVMF) -net none -monitor stdio
+
 clean:
 	rm -f $(IMG)
 	cd kernel && cargo clean && cd ..
