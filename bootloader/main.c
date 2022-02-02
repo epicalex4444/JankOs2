@@ -3,7 +3,7 @@
 #include <elf.h>
 
 typedef struct {
-	void* BaseAddress;
+	uint32_t* BaseAddress;
 	uint64_t BufferSize;
 	uint32_t Width;
 	uint32_t Height;
@@ -119,7 +119,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 
 	//plot green pixel using the framebuffer
 	PlotPixel(0, 0, 0, 255, 0, framebuffer);
-
+	Print(L"Plotted Pixel \n");
 	//get memory map
 	UINTN memoryMapSize = 0;
 	EFI_MEMORY_DESCRIPTOR* memoryMap = NULL;
@@ -131,10 +131,10 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 	uefi_call_wrapper(SystemTable->BootServices->GetMemoryMap, 5, &memoryMapSize, memoryMap, &mapKey, &descriptorSize, &descrptorVersion);
 
 	//exit boot services
-	uefi_call_wrapper(SystemTable->BootServices->ExitBootServices, 2, ImageHandle, mapKey);
+	//uefi_call_wrapper(SystemTable->BootServices->ExitBootServices, 2, ImageHandle, mapKey);
 
 	//execute kernel
-	void (*KernelStart)(BootInfo*) = ((__attribute__((sysv_abi)) void (*)(BootInfo*)) ehdr.e_entry);
+	uint32_t (*KernelStart)(BootInfo*) = ((__attribute__((sysv_abi)) uint32_t (*)(BootInfo*)) ehdr.e_entry);
 
 	BootInfo bootInfo;
 	bootInfo.framebuffer = &framebuffer;
@@ -142,7 +142,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 	bootInfo.mMSize = memoryMapSize;
 	bootInfo.mMDescSize = descriptorSize;
 
-	KernelStart(&bootInfo);
-
+	uint32_t moist= KernelStart(&bootInfo);
+	Print(L"Kernel returns: %u \n",moist);
 	return EFI_SUCCESS;
 }
