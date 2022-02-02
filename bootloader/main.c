@@ -2,6 +2,21 @@
 #include <efilib.h>
 #include <elf.h>
 
+typedef struct {
+	void* BaseAddress;
+	uint64_t BufferSize;
+	uint32_t Width;
+	uint32_t Height;
+	uint32_t PixelsPerScanLine;
+} Framebuffer;
+
+typedef struct {
+	Framebuffer *framebuffer;
+	EFI_MEMORY_DESCRIPTOR *mM;
+	UINTN mMSize;
+	UINTN mMDescSize;
+} BootInfo;
+
 //returns the gile handle to the volume that the efi file is in
 EFI_FILE_HANDLE GetVolume(EFI_HANDLE image) {
 	EFI_LOADED_IMAGE *loaded_image = NULL;
@@ -25,20 +40,9 @@ UINT64 FileSize(EFI_FILE_HANDLE FileHandle) {
 	return ret;
 }
 
-void PlotRect(uint32_t x, uint32_t y, uint32_t width, uint32_t height, uint8_t r, uint8_t g, uint8_t b, EFI_GRAPHICS_OUTPUT_PROTOCOL *gop) {
-	EFI_GRAPHICS_OUTPUT_BLT_PIXEL pixel;
-	pixel.Blue = r;
-	pixel.Green = g;
-	pixel.Red = b;
-	uefi_call_wrapper(gop->Blt, 10, gop, &pixel, EfiBltVideoFill, 0, 0, 10, 10, width, height, NULL);
+void PlotPixel(uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b, Framebuffer framebuffer) {
+   *((uint32_t*)(framebuffer.BaseAddress + 4 * framebuffer.PixelsPerScanLine * y + 4 * x)) = (r << 16) + (g << 8) + b;
 }
-
-typedef struct {
-	EFI_GRAPHICS_OUTPUT_PROTOCOL *gop;
-	EFI_MEMORY_DESCRIPTOR *mM;
-	UINTN mMSize;
-	UINTN mMDescSize;
-} BootInfo;
 
 EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
 	InitializeLib(ImageHandle, SystemTable);
@@ -105,8 +109,16 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 	EFI_GRAPHICS_OUTPUT_PROTOCOL *gop;
 	uefi_call_wrapper(SystemTable->BootServices->LocateProtocol, 3, &gopGUID, NULL, (VOID**)&gop);
 
-	//plot green rectangle using gop->Blt
-	PlotRect(0, 0, 200, 300, 0, 255, 0, gop);
+	//define framebuffer
+	Framebuffer framebuffer;
+	framebuffer.BaseAddress = (void*)gop->Mode->FrameBufferBase;
+	framebuffer.BufferSize = gop->Mode->FrameBufferSize;
+	framebuffer.Width = gop->Mode->Info->HorizontalResolution;
+	framebuffer.Height = gop->Mode->Info->VerticalResolution;
+	framebuffer.PixelsPerScanLine = gop->Mode->Info->PixelsPerScanLine;
+
+	//plot green pixel using the framebuffer
+	PlotPixel(0, 0, 0, 255, 0, framebuffer);
 
 	//get memory map
 	UINTN memoryMapSize = 0;
@@ -125,7 +137,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 	void (*KernelStart)(BootInfo*) = ((__attribute__((sysv_abi)) void (*)(BootInfo*)) ehdr.e_entry);
 
 	BootInfo bootInfo;
-	bootInfo.gop = gop;
+	bootInfo.framebuffer = &framebuffer;
 	bootInfo.mM = memoryMap;
 	bootInfo.mMSize = memoryMapSize;
 	bootInfo.mMDescSize = descriptorSize;
