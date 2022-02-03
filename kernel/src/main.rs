@@ -1,9 +1,6 @@
 #![no_std]
 #![no_main]
 
-use core::panic::PanicInfo;
-mod efi_bindings;
-
 #[repr(C)]
 pub struct EFI_MEMORY_DESCRIPTOR {
     pub Type: u32,
@@ -19,41 +16,96 @@ pub struct Framebuffer {
     pub BaseAddress: *mut u32,
     pub BufferSize: u64,
     pub Width: u32,
-    pub Height: u32,
-    pub PixelsPerScanLine: u32
+    pub Height: u32
 }
 
 #[repr(C)]
 pub struct BootInfo {
-    // TODO: Either implament the gop table manually or get a dependancy like bindgen to do it for us
-    //gop: efi_bindings::EFI_GRAPHICS_OUTPUT_PROTOCOL,
-    pub framebuffer: *mut Framebuffer,
-	pub descriptor_table: *mut EFI_MEMORY_DESCRIPTOR,
+    pub framebuffer: Framebuffer,
+	pub descriptor_table: EFI_MEMORY_DESCRIPTOR,
 	pub table_size: u64,
-	pub table_desc_size: u64
+	pub table_desc_size: u64,
+    pub glyphBuffer: *mut u8
 }
 
-fn PlotPixel(x:u32, y:u32, r:u8, g:u8, b:u8, framebuffer: *const Framebuffer) -> () {
-    let colour:u32 = (u32::from(r) << 16) + (u32::from(g) << 8) + u32::from(b);
-    
-    unsafe{
-        let buffer = &*framebuffer;
-        *((*buffer).BaseAddress.offset((4 * (*buffer).PixelsPerScanLine * y).try_into().unwrap() ).offset((4 * x).try_into().unwrap())) = colour;
+fn Maximum(a:u32, b:u32) -> u32 {
+    if a > b {
+        return a;
     }
-   
+    return b;
+}
+
+fn Minimum(a:u32, b:u32) -> u32 {
+    if a < b {
+        return a;
+    }
+    return b;
+}
+
+fn PlotPixel(x:u32, y:u32, r:u8, g:u8, b:u8, framebuffer:Framebuffer) -> () {
+    let colour:u32 = ((r as u32) << 16) + ((g as u32) << 8) + b as u32;
+    unsafe {
+        *(framebuffer.BaseAddress.offset((framebuffer.Width * x + y) as isize)) = colour;
+    }
+}
+
+fn PlotRect(x:u32, y:u32, width:u32, height:u32, r:u8, g:u8, b:u8, framebuffer:Framebuffer) -> () {
+    if x > framebuffer.Width || y > framebuffer.Height {
+        return
+    }
+
+    let colour:u32 = ((r as u32) << 16) + ((g as u32) << 8) + b as u32;
+    let mut offset = framebuffer.Width * y + x;
+    let actualHeight = Minimum(height, framebuffer.Height - y);
+    let actualWidth = Minimum(width, framebuffer.Width - x);
+
+    for _ in y..y + actualHeight {
+        for _ in x..x + actualWidth {
+            unsafe {
+                *(framebuffer.BaseAddress.offset(offset as isize)) = colour;
+            }
+            offset += 1;
+        }
+        offset += framebuffer.Width - actualWidth;
+    }
+}
+
+unsafe fn JankPutChar(chr:u8, x:u32, y:u32, framebuffer:*const Framebuffer, glyphBuffer:*mut u8) -> () {
+    let pixPtr:*mut u32 = (*framebuffer).BaseAddress;
+    let fontPtr:*mut u8 = glyphBuffer.offset((chr * 16) as isize);
+    for j in y..y + 16 {
+        for i in x..x + 8 {
+            if (*fontPtr & (0b10000000 >> (i - x))) > 0 {
+                *(pixPtr.offset((i + (j * (*framebuffer).Width)) as isize)) = 0xFFFFFFFF;
+            }
+        }
+        fontPtr.offset(1);
+    }
+}
+
+unsafe fn JankPrint(str:*const u8, mut x:u32, mut y:u32, framebuffer:*const Framebuffer, glyphBuffer:*mut u8) -> () {
+    let chr:*mut u8 = str as *mut u8;
+    while *chr != 0 {
+        JankPutChar(*chr, x, y, framebuffer, glyphBuffer);
+        x += 8;
+        if x + 8 > (*framebuffer).Width {
+            x = 0;
+            y += 16;
+        }
+        chr.offset(1);
+    }
 }
 
 #[no_mangle]
-pub extern "C" fn _start(bootloader: *mut BootInfo) -> u32 {
-        unsafe{
-        let info = &*bootloader;
-        let framebuf_p = &*(*info).framebuffer;
-        PlotPixel(0, 1, 255, 0, 0, framebuf_p);
-        return (*(*info).descriptor_table).Type;
-    }
+pub extern "C" fn _start(bootinfo:BootInfo) -> ! {
+    PlotRect(100, 100, 400, 300, 255, 0, 0, bootinfo.framebuffer);
+    //unsafe {
+    //    JankPrint("jank rust hello world!".as_ptr(), 0, 3, &(bootinfo.framebuffer), bootinfo.glyphBuffer);
+    //}
+    loop {}
 }
 
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
+fn panic(_info: &core::panic::PanicInfo) -> ! {
     loop {}
 }
