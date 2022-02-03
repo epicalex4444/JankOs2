@@ -93,7 +93,7 @@ void JankPutChar(uint8_t chr, uint32_t x, uint32_t y, Framebuffer framebuffer, u
     }
 }
 
-void JankPrint(const uint8_t* str, uint32_t x, uint32_t y, Framebuffer framebuffer, uint8_t* glyphBuffer) {
+void JankPrint(uint8_t* str, uint32_t x, uint32_t y, Framebuffer framebuffer, uint8_t* glyphBuffer) {
     char* chr = (char*)str;
     while(*chr != 0) {
         JankPutChar(*chr, x, y, framebuffer, glyphBuffer);
@@ -209,7 +209,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 		return EFI_LOAD_ERROR;
 	}
 
-	JankPrint("jank hello world\n", 0, 0, framebuffer, glyphBuffer);
+	JankPrint((uint8_t*)"jank hello world\n", 0, 0, framebuffer, glyphBuffer);
 
 	//make bootInfo struct
 	BootInfo bootInfo;
