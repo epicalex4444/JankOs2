@@ -84,7 +84,7 @@ void JankPutChar(uint8_t chr, uint32_t x, uint32_t y, Framebuffer framebuffer, u
     uint32_t* pixPtr = framebuffer.BaseAddress;
     uint8_t* fontPtr = glyphBuffer + chr * 16;
     for (uint64_t j = y; j < y + 16; ++j) {
-        for (uint64_t i = x; i < x + 8; ++i) {
+        for (uint64_t i = x; i < x + 8; ++i) {			
             if ((*fontPtr & (0b10000000 >> (i - x))) > 0) {
                 *(uint32_t*)(pixPtr + i + (j * framebuffer.Width)) = 0xFFFFFFFF;
             }
@@ -191,7 +191,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 	//uefi_call_wrapper(SystemTable->BootServices->ExitBootServices, 2, ImageHandle, mapKey);
 
 	//define KernelStart function
-	void (*KernelStart)(BootInfo) = ((__attribute__((sysv_abi)) void(*)(BootInfo))ehdr.e_entry);
+	uint32_t (*KernelStart)(BootInfo) = ((__attribute__((sysv_abi)) uint32_t(*)(BootInfo))ehdr.e_entry);
 
 	//open font file
 	EFI_FILE_HANDLE Font;
@@ -204,13 +204,12 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 	}
 
 	//load glyphBuffer
-	void* glyphBuffer = LoadFont(Font, SystemTable);
+	uint8_t* glyphBuffer = LoadFont(Font, SystemTable);
 	if (glyphBuffer == NULL) {
 		return EFI_LOAD_ERROR;
 	}
 
-	JankPrint((uint8_t*)"jank hello world\n", 0, 0, framebuffer, glyphBuffer);
-
+	//JankPrint((uint8_t*)"jank hello world\n", 0, 0, framebuffer, glyphBuffer);
 	//make bootInfo struct
 	BootInfo bootInfo;
 	bootInfo.framebuffer = framebuffer;
@@ -218,9 +217,11 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 	bootInfo.mMSize = memoryMapSize;
 	bootInfo.mMDescSize = descriptorSize;
 	bootInfo.glyphBuffer = glyphBuffer;
+	//Print(L"bootinfo glyph pointer: %u\n", bootInfo.glyphBuffer);
 
 	//execute kernel
-	KernelStart(bootInfo);
-
+	uint32_t kernel_val = KernelStart(bootInfo);
+	//Print(L"kernel glyph pointer: %u\n", kernel_val);
+	
 	return EFI_SUCCESS;
 }
