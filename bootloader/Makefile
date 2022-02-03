@@ -12,10 +12,10 @@ OBJFLAGS := -j .text -j .sdata -j .data -j .dynamic -j .dynsym -j .rel -j .rela 
 all: main.efi
 
 main.o: main.c
-	gcc $(CFLAGS) $< -o $@
+	clang $(CFLAGS) $< -o $@
 
 main.so: $(CRT0) main.o
-	ld $^ $(LDFLAGS) -o $@
+	ld.lld $^ $(LDFLAGS) -o $@
 
 main.efi: main.so
 	objcopy $(OBJFLAGS) $< $@
