@@ -15,12 +15,3 @@ pub struct Framebuffer {
     pub Width: u32,
     pub Height: u32
 }
-
-#[repr(C)]
-pub struct BootInfo {
-    pub framebuffer: Framebuffer,
-	pub descriptor_table: EFI_MEMORY_DESCRIPTOR,
-	pub table_size: u64,
-	pub table_desc_size: u64,
-    pub glyphBuffer: *mut u8
-}
