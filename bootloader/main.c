@@ -10,14 +10,6 @@ typedef struct {
 	uint32_t PixelsPerScanLine;
 } Framebuffer;
 
-typedef struct {
-	Framebuffer framebuffer;
-	EFI_MEMORY_DESCRIPTOR mM;
-	uint64_t mMSize;
-	uint64_t mMDescSize;
-	uint8_t* glyphBuffer;
-} BootInfo;
-
 //returns the file handle to the volume that the efi file is in
 EFI_FILE_HANDLE GetVolume(EFI_HANDLE image) {
 	EFI_LOADED_IMAGE *loaded_image = NULL;
@@ -187,17 +179,9 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 	uefi_call_wrapper(SystemTable->BootServices->AllocatePool, 3, EfiBootServicesData, memoryMapSize + 2 * descriptorSize, &memoryMap);
 	uefi_call_wrapper(SystemTable->BootServices->GetMemoryMap, 5, &memoryMapSize, memoryMap, &mapKey, &descriptorSize, &descrptorVersion);
 
-	//exit boot services
-	//uefi_call_wrapper(SystemTable->BootServices->ExitBootServices, 2, ImageHandle, mapKey);
-
-	//define KernelStart function
-	uint32_t (*KernelStart)(BootInfo) = ((__attribute__((sysv_abi)) uint32_t(*)(BootInfo))ehdr.e_entry);
-
 	//open font file
 	EFI_FILE_HANDLE Font;
 	uefi_call_wrapper(Volume->Open, 5, Volume, &Font, L"zap-light16.psf", EFI_FILE_MODE_READ, EFI_FILE_READ_ONLY | EFI_FILE_HIDDEN | EFI_FILE_SYSTEM);
-
-	//check font exists
 	if (Font == NULL) {
 		Print(L"font not found\n");
 		return EFI_LOAD_ERROR;
@@ -209,19 +193,17 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 		return EFI_LOAD_ERROR;
 	}
 
-	//JankPrint((uint8_t*)"jank hello world\n", 0, 0, framebuffer, glyphBuffer);
-	//make bootInfo struct
-	BootInfo bootInfo;
-	bootInfo.framebuffer = framebuffer;
-	bootInfo.mM = *memoryMap;
-	bootInfo.mMSize = memoryMapSize;
-	bootInfo.mMDescSize = descriptorSize;
-	bootInfo.glyphBuffer = glyphBuffer;
-	//Print(L"bootinfo glyph pointer: %u\n", bootInfo.glyphBuffer);
+	//define KernelStart function
+	uint64_t (*KernelStart)(Framebuffer, EFI_MEMORY_DESCRIPTOR, uint64_t, uint64_t, uint8_t*) = ((__attribute__((sysv_abi)) uint64_t(*)(Framebuffer, EFI_MEMORY_DESCRIPTOR, uint64_t, uint64_t, uint8_t*))ehdr.e_entry);
+
+	//exit boot services
+	uefi_call_wrapper(SystemTable->BootServices->ExitBootServices, 2, ImageHandle, mapKey);
+
+	Print(L"bootinfo glyph pointer: %lu\n", glyphBuffer);
 
 	//execute kernel
-	uint32_t kernel_val = KernelStart(bootInfo);
-	//Print(L"kernel glyph pointer: %u\n", kernel_val);
+	uint32_t kernel_val = KernelStart(framebuffer, *memoryMap, memoryMapSize, descriptorSize, glyphBuffer);
+	Print(L"kernel glyph pointer: %lu\n", kernel_val);
 	
 	return EFI_SUCCESS;
 }
