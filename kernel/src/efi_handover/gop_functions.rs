@@ -1,6 +1,28 @@
 use super::efi_bindings::Framebuffer;
 use crate::math::minimum;
 
+static mut cursor: u16 = 0;
+static mut max_cursor: u16 = 0;
+
+// Gets the current cursor position for printing
+pub fn get_cursor() -> u16{
+    unsafe{
+        return cursor
+    }    
+}
+
+pub fn inc_cursor(amount: u16) -> (){
+    unsafe{
+        cursor = (cursor + amount)%max_cursor;
+    }
+}
+
+pub fn set_max_cursor(max: u16) -> (){
+    unsafe{
+        max_cursor = max;
+    }
+    
+}
 
 pub fn PlotPixel(x:u32, y:u32, r:u8, g:u8, b:u8, framebuffer:Framebuffer) -> () {
     let colour:u32 = (u32::from(r) << 16) + (u32::from(g) << 8) + u32::from(b);    
