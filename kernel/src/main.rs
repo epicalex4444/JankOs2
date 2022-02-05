@@ -18,10 +18,13 @@ pub extern "C" fn _start(framebuffer:efi_bindings::Framebuffer, descriptor_table
     unsafe {
         gop_functions::plot_rect(0, 0, framebuffer.Width, framebuffer.Height, 0, 0, 0, &framebuffer);
     }
-    print::print("mosit\thello", &framebuffer, glyphBuffer);
-    print::print_binary(17, &framebuffer, glyphBuffer);
-    print::print_dec(128, &framebuffer, glyphBuffer);
-    print::print_hex(0x7f, &framebuffer, glyphBuffer);
+
+    print::print("Glyph buffer: ", &framebuffer, glyphBuffer);
+    print::print_hex(glyphBuffer as u32, &framebuffer, glyphBuffer);
+    print::print("\nFrame buffer: ", &framebuffer, glyphBuffer);
+    unsafe {
+        print::print_hex(&framebuffer as *const efi_bindings::Framebuffer as u32, &framebuffer, glyphBuffer);
+    }
     return glyphBuffer as u64;
 }
 

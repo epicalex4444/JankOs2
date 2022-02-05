@@ -4,14 +4,16 @@ use crate::efi_handover::efi_bindings;
 // Prints the given string, including functionality for '\t' and '\n'
 pub fn print(data_ptr: &str, framebuffer: *const efi_bindings::Framebuffer, glyphbuffer: *mut u8) -> (){
     let mut data: *mut u8 = data_ptr.as_ptr() as *mut u8;
+    let mut amount = data_ptr.len();
     unsafe{
-        while *data != 0{
+        while amount > 0{
             let c = *data;
             match c as char{
                 '\t' => tab(),
                 '\n' => newline(),
-                _ => place_char(c as u8, framebuffer, glyphbuffer)
+                _ => place_char(c, framebuffer, glyphbuffer)
             }
+            amount -= 1;
             data = data.offset(1);
         }
     }
