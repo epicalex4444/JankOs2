@@ -19,11 +19,8 @@ pub extern "C" fn _start(framebuffer:efi_bindings::Framebuffer, descriptor_table
         gop_functions::plot_rect(0, 0, framebuffer.Width, framebuffer.Height, 0, 0, 0, &framebuffer);
     }
     print::print("mosit\thello", &framebuffer, glyphBuffer);
-    print::newline();
     print::print_binary(17, &framebuffer, glyphBuffer);
-    print::newline();
     print::print_dec(128, &framebuffer, glyphBuffer);
-    print::newline();
     print::print_hex(0x7f, &framebuffer, glyphBuffer);
     return glyphBuffer as u64;
 }
