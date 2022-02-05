@@ -179,17 +179,9 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 	uefi_call_wrapper(SystemTable->BootServices->AllocatePool, 3, EfiBootServicesData, memoryMapSize + 2 * descriptorSize, &memoryMap);
 	uefi_call_wrapper(SystemTable->BootServices->GetMemoryMap, 5, &memoryMapSize, memoryMap, &mapKey, &descriptorSize, &descrptorVersion);
 
-	//exit boot services
-	//uefi_call_wrapper(SystemTable->BootServices->ExitBootServices, 2, ImageHandle, mapKey);
-
-	//define KernelStart function
-	uint64_t (*KernelStart)(Framebuffer, EFI_MEMORY_DESCRIPTOR, uint64_t, uint64_t, uint8_t*) = ((__attribute__((sysv_abi)) uint64_t(*)(Framebuffer, EFI_MEMORY_DESCRIPTOR, uint64_t, uint64_t, uint8_t*))ehdr.e_entry);
-
 	//open font file
 	EFI_FILE_HANDLE Font;
 	uefi_call_wrapper(Volume->Open, 5, Volume, &Font, L"zap-light16.psf", EFI_FILE_MODE_READ, EFI_FILE_READ_ONLY | EFI_FILE_HIDDEN | EFI_FILE_SYSTEM);
-
-	//check font exists
 	if (Font == NULL) {
 		Print(L"font not found\n");
 		return EFI_LOAD_ERROR;
@@ -200,6 +192,12 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 	if (glyphBuffer == NULL) {
 		return EFI_LOAD_ERROR;
 	}
+
+	//define KernelStart function
+	uint64_t (*KernelStart)(Framebuffer, EFI_MEMORY_DESCRIPTOR, uint64_t, uint64_t, uint8_t*) = ((__attribute__((sysv_abi)) uint64_t(*)(Framebuffer, EFI_MEMORY_DESCRIPTOR, uint64_t, uint64_t, uint8_t*))ehdr.e_entry);
+
+	//exit boot services
+	uefi_call_wrapper(SystemTable->BootServices->ExitBootServices, 2, ImageHandle, mapKey);
 
 	Print(L"bootinfo glyph pointer: %lu\n", glyphBuffer);
 
