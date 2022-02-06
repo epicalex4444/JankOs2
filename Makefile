@@ -1,7 +1,7 @@
 BOOTLOADER := bootloader/main.efi
 BOOTLOADER_DEPS := bootloader/main.c
 KERNEL := kernel/target/x86_64-kernel/release/kernel
-KERNEL_DEPS := kernel/src/main.rs
+KERNEL_DEPS := $(shell find -path "./kernel/src/*.rs")
 IMG := JankOs.img
 OVMF := /usr/share/ovmf/x64/OVMF.fd
 STARTUP := startup.nsh
