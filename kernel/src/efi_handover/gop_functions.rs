@@ -1,75 +1,75 @@
 use super::efi_bindings::Framebuffer;
 use crate::math::minimum;
 
-static mut cursor: u16 = 0;
-static mut max_cursor: u16 = 0;
+static mut CURSOR: u16 = 0;
+static mut MAX_CURSOR: u16 = 0;
 
-// Gets the current cursor position for printing
+// Gets the current CURSOR position for printing
 pub fn get_cursor() -> u16{
     unsafe{
-        return cursor
+        return CURSOR
     }    
 }
 
 pub fn inc_cursor(amount: u16) -> (){
     unsafe{
-        cursor = (cursor + amount)%max_cursor;
+        CURSOR = (CURSOR + amount)%MAX_CURSOR;
     }
 }
 
 pub fn set_max_cursor(max: u16) -> (){
     unsafe{
-        max_cursor = max;
+        MAX_CURSOR = max;
     }
     
 }
 
-pub fn PlotPixel(x:u32, y:u32, r:u8, g:u8, b:u8, framebuffer:Framebuffer) -> () {
+pub fn plot_pixel(x:u32, y:u32, r:u8, g:u8, b:u8, framebuffer:Framebuffer) -> () {
     let colour:u32 = (u32::from(r) << 16) + (u32::from(g) << 8) + u32::from(b);    
     unsafe{
-        *(framebuffer.BaseAddress.offset((framebuffer.Width * y) as isize ).offset((x) as isize)) = colour;
+        *(framebuffer.base_address.offset((framebuffer.width * y) as isize ).offset((x) as isize)) = colour;
     }   
 }
 
 pub unsafe fn plot_rect(x:u32, y:u32, width:u32, height:u32, r:u8, g:u8, b:u8, framebuffer: *const Framebuffer) -> () {
-    if x > (*framebuffer).Width || y > (*framebuffer).Height {
+    if x > (*framebuffer).width || y > (*framebuffer).height {
         return
     }
 
     let colour:u32 = ((r as u32) << 16) + ((g as u32) << 8) + b as u32;
-    let mut offset = (*framebuffer).Width * y + x;
-    let actualHeight = minimum(height, (*framebuffer).Height - y);
-    let actualWidth = minimum(width, (*framebuffer).Width - x);
+    let mut offset = (*framebuffer).width * y + x;
+    let actual_height = minimum(height, (*framebuffer).height - y);
+    let actual_width = minimum(width, (*framebuffer).width - x);
 
-    for _ in y..y + actualHeight {
-        for _ in x..x + actualWidth {
-                *((*framebuffer).BaseAddress.offset(offset as isize)) = colour;
+    for _ in y..y + actual_height {
+        for _ in x..x + actual_width {
+                *((*framebuffer).base_address.offset(offset as isize)) = colour;
             offset += 1;
         }
-        offset += (*framebuffer).Width - actualWidth;
+        offset += (*framebuffer).width - actual_width;
     }
 }
 
-pub unsafe fn jank_put_char(chr:u8, x:u32, y:u32, framebuffer:*const Framebuffer, glyphBuffer:*mut u8) -> () {
+pub unsafe fn jank_put_char(chr:u8, x:u32, y:u32, framebuffer:*const Framebuffer, glyphbuffer:*mut u8) -> () {
     let buf = &*framebuffer;
-    let pixPtr:*mut u32 = buf.BaseAddress;
-    let mut fontPtr:*mut u8 = glyphBuffer.offset(((chr as u32) * 16) as isize);
+    let pix_ptr:*mut u32 = buf.base_address;
+    let mut font_ptr:*mut u8 = glyphbuffer.offset(((chr as u32) * 16) as isize);
     for j in y..y + 16 {
         for i in x..x + 8 {
-            if (*fontPtr & (0b10000000 >> (i - x))) > 0 {
-                *(pixPtr.offset((i + (j * buf.Width)) as isize)) = 0xFFFFFFFF;
+            if (*font_ptr & (0b10000000 >> (i - x))) > 0 {
+                *(pix_ptr.offset((i + (j * buf.width)) as isize)) = 0xFFFFFFFF;
             }
         }
-        fontPtr =fontPtr.offset(1);
+        font_ptr = font_ptr.offset(1);
     }
 }
 
-pub unsafe fn jank_print(str:*const u8, mut x:u32, mut y:u32, framebuffer:*const Framebuffer, glyphBuffer:*mut u8) -> () {
+pub unsafe fn jank_print(str:*const u8, mut x:u32, mut y:u32, framebuffer:*const Framebuffer, glyphbuffer:*mut u8) -> () {
     let mut chr:*mut u8 = str as *mut u8;
     while *chr != 0 {
-        jank_put_char(*chr, x, y, framebuffer, glyphBuffer);
+        jank_put_char(*chr, x, y, framebuffer, glyphbuffer);
         x += 8;
-        if x + 8 > (*framebuffer).Width {
+        if x + 8 > (*framebuffer).width {
             x = 0;
             y += 16;
         }

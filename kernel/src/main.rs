@@ -11,21 +11,20 @@ use efi_handover::efi_bindings;
 use efi_handover::gop_functions;
 
 #[no_mangle]
-pub extern "C" fn _start(bootInfo:efi_bindings::BootInfo) -> u64 {
+pub extern "C" fn _start(boot_info:efi_bindings::BootInfo) -> u64 {
     
     gop_functions::set_max_cursor(7154 as u16);
     
     unsafe {
-        gop_functions::plot_rect(0, 0, bootInfo.framebuffer.Width, bootInfo.framebuffer.Height, 0, 0, 0, &bootInfo.framebuffer);
+        gop_functions::plot_rect(0, 0, boot_info.framebuffer.width, boot_info.framebuffer.height, 0, 0, 0, &boot_info.framebuffer);
     }
 
-    print::print("Glyph buffer: ", &bootInfo.framebuffer, bootInfo.glyphBuffer);
-    print::print_hex(bootInfo.glyphBuffer as u32, &bootInfo.framebuffer, bootInfo.glyphBuffer);
-    print::print("\nFrame buffer: ", &bootInfo.framebuffer, bootInfo.glyphBuffer);
-    unsafe {
-        print::print_hex(&bootInfo.framebuffer as *const efi_bindings::Framebuffer as u32, &bootInfo.framebuffer, bootInfo.glyphBuffer);
-    }
-    return bootInfo.glyphBuffer as u64;
+    print::print("Glyph buffer: ", &boot_info.framebuffer, boot_info.glyphbuffer);
+    print::print_hex(boot_info.glyphbuffer as u32, &boot_info.framebuffer, boot_info.glyphbuffer);
+    print::print("\nFrame buffer: ", &boot_info.framebuffer, boot_info.glyphbuffer);
+    print::print_hex(&boot_info.framebuffer as *const efi_bindings::Framebuffer as u32, &boot_info.framebuffer, boot_info.glyphbuffer);
+    
+    return boot_info.glyphbuffer as u64;
 }
 
 #[panic_handler]
