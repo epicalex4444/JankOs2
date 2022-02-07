@@ -1,3 +1,10 @@
 # JankOs2
-new JankOs
-to compile the bootloader you need to clone https://git.code.sf.net/p/gnu-efi/code then run make install as root
+## dependencies
+make  
+clang (clang and ld.lld commands)  
+cargo  
+objcopy
+mtools (mformat, mmd and mcopy commands)  
+qemu  
+gnu-efi (header files in /usr/include/efi, object files and linker script in /usr/lib)  
+ovmf (should have file /usr/share/ovmf/x64/OVMF.fd)  
