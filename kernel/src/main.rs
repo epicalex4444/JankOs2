@@ -16,32 +16,39 @@ use efi_handover::gop_functions;
 pub extern "C" fn _start(boot_info: efi_bindings::BootInfo) -> u64 {
     handle_boot_handover(&boot_info);
 
-    let mut bmap = bitmap::Bitmap::new(3);
+    let mut bmap = bitmap::Bitmap::new( 0x1000 as *mut u8, 3);
     unsafe{
-        for i in (*bmap.bitmap_ptr).iter() {
-            print::print_binary(*i as u32);
-            print::print("\n");
+        let index = 23u64;
+        if bmap.get_bit(index){
+            print::print_binary(*(bmap.bitmap_ptr.offset((index/8) as isize)) as u32);
+            print::print("Bit set\n")
         }
+        else{
+            print::print_binary(*(bmap.bitmap_ptr.offset((index/8) as isize)) as u32);
+            print::print("Bit clear\n")
+        }
+        print::print("\n");
+        bmap.set_bit(index);
+        if bmap.get_bit(index){
+            print::print_binary(*(bmap.bitmap_ptr.offset((index/8) as isize)) as u32);
+            print::print("Bit set\n")
+        }
+        else{
+            print::print_binary(*(bmap.bitmap_ptr.offset((index/8) as isize)) as u32);
+            print::print("Bit clear\n")
+        }
+        print::print("\n");
+        bmap.clear_bit(index);
+        if bmap.get_bit(index){
+            print::print_binary(*(bmap.bitmap_ptr.offset((index/8) as isize)) as u32);
+            print::print("Bit set\n")
+        }
+        else{
+            print::print_binary(*(bmap.bitmap_ptr.offset((index/8) as isize)) as u32);
+            print::print("Bit clear\n")
+        }
+        print::print("\n");
     }
-
-    /*
-    let mut bmap = bitmap::Bitmap::new();
-    print::print_binary(bmap.bits as u32);
-    bmap.set_bit(3, true);
-    print::print("\n");
-    print::print_binary(bmap.bits as u32);
-    if bmap.get_bit(3) {
-        print::print("\nbit 3 is true")
-    }
-    bmap.set_bit(3, false);
-    print::print("\n");
-    print::print_binary(bmap.bits as u32);
-    if bmap.get_bit(3) {
-        print::print("\nbit 3 is true")
-    } else {
-        print::print("\nbit 3 is false")
-    }
-    */
     return boot_info.glyphbuffer as u64;
 }
 
