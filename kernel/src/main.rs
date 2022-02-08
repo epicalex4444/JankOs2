@@ -1,6 +1,7 @@
 #![no_std]
 #![no_main]
 #![feature(int_log)]
+#![feature(panic_info_message)]
 
 mod basic_library;
 mod efi_handover;
@@ -15,6 +16,15 @@ use efi_handover::gop_functions;
 pub extern "C" fn _start(boot_info: efi_bindings::BootInfo) -> u64 {
     handle_boot_handover(&boot_info);
 
+    let mut bmap = bitmap::Bitmap::new(3);
+    unsafe{
+        for i in (*bmap.bitmap_ptr).iter() {
+            print::print_binary(*i as u32);
+            print::print("\n");
+        }
+    }
+
+    /*
     let mut bmap = bitmap::Bitmap::new();
     print::print_binary(bmap.bits as u32);
     bmap.set_bit(3, true);
@@ -31,7 +41,7 @@ pub extern "C" fn _start(boot_info: efi_bindings::BootInfo) -> u64 {
     } else {
         print::print("\nbit 3 is false")
     }
-    //return boot_info.glyphbuffer as u64;
+    */
     return boot_info.glyphbuffer as u64;
 }
 
@@ -58,5 +68,30 @@ fn handle_boot_handover(boot_info: *const efi_bindings::BootInfo) -> () {
 
 #[panic_handler]
 fn panic(_info: &core::panic::PanicInfo) -> ! {
-    loop {}
+    if let Some(location) = _info.location(){
+        print::print("Runtime error encountered at: ");
+        print::print(location.file());
+        print::print(" in line: ");
+        print::print_dec(location.line());
+        if let Some(message) = _info.message(){
+            if let Some(str_ptr) = message.as_str() {
+                print::print("\nMessage: ");
+                print::print(str_ptr);
+            }
+            else{                
+                if let Some(error) = _info.payload().downcast_ref::<&str>(){
+                    print::print("\n Error: ");
+                    print::print(error);
+                }
+                else{
+                    print::print("\n Error");
+                }
+            }
+        }
+        else{
+            print::print("\nNo Message")
+        }
+        
+    }
+    loop{}
 }
