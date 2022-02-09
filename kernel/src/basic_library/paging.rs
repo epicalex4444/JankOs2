@@ -2,15 +2,25 @@ use super::bitmap;
 use crate::efi_bindings::EFI_MEMORY_DESCRIPTOR;
 
 pub fn init_paging(memory_map: *const EFI_MEMORY_DESCRIPTOR, memory_map_size: u64, descriptor_size: u64) -> () {
-    let mut memory_pages: u64 = 0;
+    let mut bitmap_index: u64 = 0;
     for i in 0..memory_map_size / descriptor_size {
         unsafe {
             let descriptor: *const EFI_MEMORY_DESCRIPTOR = (memory_map as u64 + i * descriptor_size) as *const EFI_MEMORY_DESCRIPTOR;
-            memory_pages += (*descriptor).number_of_pages;
+            if (*descriptor).t == 7 {
+                for j in 0..(*descriptor).number_of_pages {
+                    //clear bit in bitmap
+                    bitmap_index += 1;
+                }
+            } else {
+                for j in 0..(*descriptor).number_of_pages {
+                    //set bit in bitmap
+                    bitmap_index += 1;
+                }
+            }
         }
     }
 
-    let memory_pages_pages: u64 = memory_pages / 4096 + 1;
+    let memory_pages_pages: u64 = bitmap_index / 4096 + 1;
     let mut bitmap_start: *mut u8 = 0 as *mut u8;
     
     for i in 0..memory_map_size / descriptor_size {
@@ -27,7 +37,7 @@ pub fn init_paging(memory_map: *const EFI_MEMORY_DESCRIPTOR, memory_map_size: u6
         return;
     }
 
-    let bitmap = bitmap::Bitmap::new(bitmap_start, memory_pages / 8 + 1);
+    let bitmap = bitmap::Bitmap::new(bitmap_start, bitmap_index / 8 + 1);
 
     for i in 0..memory_map_size / descriptor_size {
         unsafe {
@@ -40,7 +50,7 @@ pub fn init_paging(memory_map: *const EFI_MEMORY_DESCRIPTOR, memory_map_size: u6
         }
     }
 
-    reserve_pages(bitmap as u64, memory_pages_pages);
+    reserve_pages(bitmap_start as u64, memory_pages_pages);
 }
 
 pub fn free_page(address: u64) -> () {
