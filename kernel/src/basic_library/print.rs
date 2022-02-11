@@ -15,7 +15,7 @@ pub fn get_cursor() -> u16 {
 
 pub fn inc_cursor(amount: u16) -> () {
     unsafe {
-        CURSOR = (CURSOR + amount) % MAX_CURSOR;
+        CURSOR = CURSOR + amount //% MAX_CURSOR;
     }
 }
 
@@ -43,12 +43,25 @@ pub fn print(data_ptr: &str) -> () {
     }
 }
 
+pub fn println(data_ptr: &str) -> () {
+    print(data_ptr);
+    print("\n");
+}
+
 // Prints a character aligned with the character buffer grid
 #[inline(always)]
 fn place_char(c: u8) -> () {
     let loc = get_cursor();
-    let x = (loc % 98) * 8 + 8;
-    let y = (loc / 98) * 16;
+    let mut x  = 0;
+    let mut y = 0;
+    if loc > 1776 {
+        x = (loc % 48) * 8 + (49 * 8);
+        y = ((loc / 48) * 16) -600;
+    }
+    else{
+        x = (loc % 48) * 8 + 8;
+        y = (loc / 48) * 16;
+    }
 
     unsafe {
         //gop_functions::jank_put_char(c as u8, x as u32, y as u32, glyphbuffer)
@@ -68,13 +81,13 @@ fn place_char(c: u8) -> () {
 
 // Moves cursor to next line
 fn newline() {
-    let number = 98 - (get_cursor() % 98);
+    let number = 48 - (get_cursor() % 48);
     inc_cursor(number);
 }
 
 // Moves cursor to nearest denomination of 4
 fn tab() {
-    let number = 4 - (98 - (get_cursor() % 98)) % 4;
+    let number = 4 - (48 - (get_cursor() % 48)) % 4;
     inc_cursor(number);
 }
 
