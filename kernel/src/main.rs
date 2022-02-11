@@ -16,7 +16,8 @@ use efi_bindings::EFI_MEMORY_DESCRIPTOR;
 #[no_mangle]
 pub extern "C" fn _start(boot_info: efi_bindings::BootInfo) -> u64 {
     handle_boot_handover(&boot_info);
-
+    print::print("Framebuffer width: ");
+    print::print("\n");
     print::print("Memory map size: ");
     print::print_dec(boot_info.memory_map_size as u32);
     print::print("\nDescriptor size: ");
@@ -48,7 +49,6 @@ pub extern "C" fn _start(boot_info: efi_bindings::BootInfo) -> u64 {
         print::print("\n OEM Descriptors: ");
         print::print_dec(oem);
 
-        print::print("\n");
         print::print("\nMmap location: ");
         print::print_hex(((&boot_info.memory_map) as *const efi_bindings::EFI_MEMORY_DESCRIPTOR) as u32);
     }
@@ -61,11 +61,7 @@ pub extern "C" fn _start(boot_info: efi_bindings::BootInfo) -> u64 {
 // Handles the absolutely neccesary setup before anything else can be done.
 fn handle_boot_handover(boot_info: *const efi_bindings::BootInfo) -> () {
     unsafe {
-        print::set_max_cursor(
-            (((*boot_info).framebuffer.width / 8) * ((*boot_info).framebuffer.height / 16)) as u16,
-        );
-        print::set_glyphbuffer_ptr((*boot_info).glyphbuffer);
-        gop_functions::set_frambuffer_ptr(&(*boot_info).framebuffer);
+        gop_functions::gop_init(&(*boot_info).framebuffer);                
         // Set backroundd to black
         gop_functions::plot_rect(
             0,
@@ -77,6 +73,9 @@ fn handle_boot_handover(boot_info: *const efi_bindings::BootInfo) -> () {
             0,
             &(*boot_info).framebuffer,
         );
+        
+        print::init_print((*boot_info).glyphbuffer, &(*boot_info).framebuffer, true);
+
     }
 }
 
