@@ -11,13 +11,11 @@ use basic_library::paging;
 use basic_library::print;
 use efi_handover::efi_bindings;
 use efi_handover::gop_functions;
-use efi_bindings::EFI_MEMORY_DESCRIPTOR;
 
 #[no_mangle]
 pub extern "C" fn _start(boot_info: efi_bindings::BootInfo) -> u64 {
     handle_boot_handover(&boot_info);
-    print::print("Framebuffer width: ");
-    print::print("\n");
+    
     print::print("Memory map size: ");
     print::print_dec(boot_info.memory_map_size as u32);
     print::print("\nDescriptor size: ");
@@ -27,22 +25,22 @@ pub extern "C" fn _start(boot_info: efi_bindings::BootInfo) -> u64 {
     unsafe{
         let mut res = 0;
         let mut oem = 0;
-        for i in 0..(boot_info.memory_map_size / boot_info.memory_map_descriptor_size){
-            
-            let descriptor: *const EFI_MEMORY_DESCRIPTOR = (&boot_info.memory_map as *const EFI_MEMORY_DESCRIPTOR).offset((i * boot_info.memory_map_descriptor_size) as isize);
-            if (*descriptor).t <= 14{
-                print::print("\n");
-                print::print_dec(i.try_into().unwrap());
-                print::print(": ");
-                print::print_dec((*descriptor).t);
-            }
-            else if (*descriptor).t <= 0x6FFFFFFF {
-                res += 1;
-            }
-            else{
-                oem += 1;
-            }
-        }
+        // for i in 0..(boot_info.memory_map_size / boot_info.memory_map_descriptor_size){
+        //     //let descriptor: *const efi_bindings::EFI_MEMORY_DESCRIPTOR = (&boot_info.memory_map as *const efi_bindings::EFI_MEMORY_DESCRIPTOR).offset(i);
+        //     let descriptor: *const efi_bindings::EFI_MEMORY_DESCRIPTOR = (((&boot_info.memory_map as *const efi_bindings::EFI_MEMORY_DESCRIPTOR) as u64) + (i * boot_info.memory_map_descriptor_size)) as *const efi_bindings::EFI_MEMORY_DESCRIPTOR;
+        //     if (*descriptor).r#type <= 14{
+        //         print::print("\n");
+        //         print::print_dec(i as u32);
+        //         print::print(": ");
+        //         print::print_hex((*descriptor).r#type as u32);
+        //     }
+        //     else if (*descriptor).r#type <= 0x6FFFFFFF {
+        //         res += 1;
+        //     }
+        //     else{
+        //         oem += 1;
+        //     }
+        // }
 
         print::print("\n Reserved descriptors: ");
         print::print_dec(res);
@@ -61,7 +59,7 @@ pub extern "C" fn _start(boot_info: efi_bindings::BootInfo) -> u64 {
 // Handles the absolutely neccesary setup before anything else can be done.
 fn handle_boot_handover(boot_info: *const efi_bindings::BootInfo) -> () {
     unsafe {
-        gop_functions::gop_init(&(*boot_info).framebuffer);                
+        gop_functions::gop_init(&(*boot_info).framebuffer);
         // Set backroundd to black
         gop_functions::plot_rect(
             0,

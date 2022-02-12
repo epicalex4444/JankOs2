@@ -1,5 +1,5 @@
 use super::bitmap;
-use crate::efi_bindings::EFI_MEMORY_DESCRIPTOR;
+use crate::efi_handover::efi_bindings::EFI_MEMORY_DESCRIPTOR;
 use super::print;
 
 pub static mut BITMAP: bitmap::Bitmap = bitmap::Bitmap{bitmap_ptr: core::ptr::null_mut(), length:1 };
@@ -19,7 +19,7 @@ pub fn init_paging(memory_map: *const EFI_MEMORY_DESCRIPTOR, memory_map_size: u6
     for i in 0..memory_map_size / descriptor_size {
         unsafe {
             let descriptor: *const EFI_MEMORY_DESCRIPTOR = (memory_map as u64 + i * descriptor_size) as *const EFI_MEMORY_DESCRIPTOR;
-            if (*descriptor).t == 7 && (*descriptor).number_of_pages >= memory_pages_pages {
+            if (*descriptor).r#type == 7 && (*descriptor).number_of_pages >= memory_pages_pages {
                 bitmap_start = (*descriptor).physical_start as *mut u8;
                 break;
             }
@@ -40,7 +40,7 @@ pub fn init_paging(memory_map: *const EFI_MEMORY_DESCRIPTOR, memory_map_size: u6
     for i in 0..memory_map_size / descriptor_size {
         unsafe {
             let descriptor: *const EFI_MEMORY_DESCRIPTOR = (memory_map as u64 + i * descriptor_size) as *const EFI_MEMORY_DESCRIPTOR;
-            if (*descriptor).t == 7 {
+            if (*descriptor).r#type == 7 {
                 for _ in 0..(*descriptor).number_of_pages {
                     BITMAP.clear_bit(bitmap_index);
                     bitmap_index += 1;
