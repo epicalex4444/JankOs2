@@ -1,5 +1,10 @@
 use crate::efi_handover::gop_functions;
+<<<<<<< HEAD
 use crate::efi_handover::efi_bindings::Framebuffer;
+=======
+use crate::efi_handover::efi_bindings;
+use crate::Framebuffer;
+>>>>>>> 98f671a42ef1bb6826a3ca73b90142af6ad384ba
 
 static mut CURSOR: u32 = 0;
 static mut MAX_CURSOR: u32 = 0;
