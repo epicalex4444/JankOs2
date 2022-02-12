@@ -10,8 +10,8 @@ typedef struct {
 } Framebuffer;
 
 typedef struct {
-	Framebuffer framebuffer;
-	EFI_MEMORY_DESCRIPTOR mM;
+	Framebuffer* framebuffer;
+	EFI_MEMORY_DESCRIPTOR* mM;
 	uint64_t mMSize;
 	uint64_t mMDescSize;
 	uint8_t* glyphBuffer;
@@ -201,23 +201,23 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 	}
 
 	BootInfo bootInfo;
-	bootInfo.framebuffer = framebuffer;
-	bootInfo.mM = *mM;
+	bootInfo.framebuffer = &framebuffer;
+	bootInfo.mM = mM;
 	bootInfo.mMSize = mMSize;
 	bootInfo.mMDescSize = mMDescSize;
 	bootInfo.glyphBuffer = glyphBuffer;
 
 	//define KernelStart function
-	uint64_t (*KernelStart)(BootInfo) = ((__attribute__((sysv_abi)) uint64_t(*)(BootInfo))ehdr.e_entry);
+	uint64_t (*KernelStart)(BootInfo*) = ((__attribute__((sysv_abi)) uint64_t(*)(BootInfo*))ehdr.e_entry);
 
 	//exit boot services
 	uefi_call_wrapper(SystemTable->BootServices->ExitBootServices, 2, ImageHandle, mMKey);
 
-	Print(L"bootinfo glyph pointer: %lu\n", glyphBuffer);
+	Print(L"bootinfo memory pointer: %lu\n", mM);
 
 	//execute kernel
-	uint32_t kernel_val = KernelStart(bootInfo);
-	Print(L"kernel glyph pointer: %lu\n", kernel_val);
+	uint32_t kernel_val = KernelStart(&bootInfo);
+	Print(L"kernel memory pointer: %lu\n", kernel_val);
 	
 	return EFI_SUCCESS;
 }

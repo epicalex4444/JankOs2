@@ -18,8 +18,8 @@ pub struct Framebuffer {
 
 #[repr(C)]
 pub struct BootInfo {
-    pub framebuffer: Framebuffer,
-    pub memory_map: EFI_MEMORY_DESCRIPTOR,
+    pub framebuffer: *const Framebuffer,
+    pub memory_map: *const EFI_MEMORY_DESCRIPTOR,
     pub memory_map_size: u64,
     pub memory_map_descriptor_size: u64,
     pub glyphbuffer: *const u8,

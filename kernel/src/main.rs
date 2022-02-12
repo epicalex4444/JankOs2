@@ -13,6 +13,7 @@ use efi_handover::efi_bindings;
 use efi_handover::gop_functions;
 
 #[no_mangle]
+<<<<<<< HEAD
 pub extern "C" fn _start(boot_info: efi_bindings::BootInfo) -> u64 {
     handle_boot_handover(&boot_info);
     
@@ -41,38 +42,37 @@ pub extern "C" fn _start(boot_info: efi_bindings::BootInfo) -> u64 {
         //         oem += 1;
         //     }
         // }
+=======
+pub extern "C" fn _start(boot_info: *const efi_bindings::BootInfo) -> u64 {
+    handle_boot_handover(boot_info);
+>>>>>>> 262f68b8c93e4714ff2e21626539f4aded490901
 
-        print::print("\n Reserved descriptors: ");
-        print::print_dec(res);
-        print::print("\n OEM Descriptors: ");
-        print::print_dec(oem);
-
-        print::print("\nMmap location: ");
-        print::print_hex(((&boot_info.memory_map) as *const efi_bindings::EFI_MEMORY_DESCRIPTOR) as u32);
+    unsafe {
+        return (*boot_info).memory_map as u64;
     }
-   
-    paging::init_paging(&boot_info.memory_map, boot_info.memory_map_size, boot_info.memory_map_descriptor_size);
-
-    return boot_info.memory_map.physical_start as u64;
 }
 
 // Handles the absolutely neccesary setup before anything else can be done.
 fn handle_boot_handover(boot_info: *const efi_bindings::BootInfo) -> () {
     unsafe {
+<<<<<<< HEAD
         gop_functions::gop_init(&(*boot_info).framebuffer);
+=======
+        gop_functions::gop_init((*boot_info).framebuffer);                
+>>>>>>> 262f68b8c93e4714ff2e21626539f4aded490901
         // Set backroundd to black
-        gop_functions::plot_rect(
-            0,
-            0,
-            (*boot_info).framebuffer.width,
-            (*boot_info).framebuffer.height,
-            0,
-            0,
-            0,
-            &(*boot_info).framebuffer,
-        );
+        //gop_functions::plot_rect(
+        //    0,
+        //    0,
+        //    (*(*boot_info).framebuffer).width,
+        //    (*(*boot_info).framebuffer).height,
+        //    0,
+        //    0,
+        //    0,
+        //    (*boot_info).framebuffer,
+        //);
         
-        print::init_print((*boot_info).glyphbuffer, &(*boot_info).framebuffer, true);
+        print::init_print((*boot_info).glyphbuffer, (*boot_info).framebuffer, true);
 
     }
 }
