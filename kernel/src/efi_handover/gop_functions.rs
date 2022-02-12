@@ -1,5 +1,5 @@
 use super::efi_bindings::Framebuffer;
-use crate::math::minimum;
+use crate::basic_library::math::minimum;
 
 static mut FRAMEBUFFER_PTR: *const Framebuffer = core::ptr::null();
 

@@ -1,6 +1,6 @@
 #[repr(C)]
 pub struct EFI_MEMORY_DESCRIPTOR {
-    pub r#type: u32,
+    pub t: u32,
     pub pad: u32,
     pub physical_start: u64,
     pub virtual_start: u64,
