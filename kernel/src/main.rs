@@ -2,11 +2,11 @@
 #![no_main]
 #![feature(int_log)]
 #![feature(panic_info_message)]
+#[allow(dead_code)]
 
 mod basic_library;
 mod efi_handover;
 
-use basic_library::math::RoundMath;
 use basic_library::print::{
     print,
     print_hex,
@@ -14,8 +14,7 @@ use basic_library::print::{
     init_print
 };
 use efi_handover::efi_bindings::{
-    EFI_MEMORY_DESCRIPTOR,
-    BootInfo,
+    BootInfo
 };
 use efi_handover::gop_functions::{
     gop_init,
@@ -23,9 +22,6 @@ use efi_handover::gop_functions::{
 };
 use basic_library::paging::{
     request_page,
-    request_pages,
-    free_page,
-    free_pages,
     init_paging
 };
 
@@ -46,13 +42,10 @@ pub extern "C" fn _start(boot_info: *const BootInfo) -> u64 {
         print("requested addresss = ");
         print_hex(address as u32);
 
-        unsafe {
-            let address_ptr: *mut u64 = address as *mut u64;
-            (*address_ptr) = 0xffffffffffffffff;
-        }
+        let address_ptr: *mut u64 = address as *mut u64;
+        (*address_ptr) = 0xffffffffffffffff;
 
         loop {};
-        return 0;
     }
 }
 

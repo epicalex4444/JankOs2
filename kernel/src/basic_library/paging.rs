@@ -1,7 +1,5 @@
 use super::bitmap;
 use crate::efi_handover::efi_bindings::EFI_MEMORY_DESCRIPTOR;
-use crate::efi_handover::efi_bindings;
-use super::print;
 use crate::basic_library::math::RoundMath;
 
 pub static mut BITMAP: bitmap::Bitmap = bitmap::Bitmap{bitmap_ptr: core::ptr::null_mut(), length:1};
@@ -70,8 +68,8 @@ pub fn free_page(address: u64) -> () {
 pub fn free_pages(mut address: u64, pages: u64) -> () {
     for _ in 0..pages {
         free_page(address);
+        address += 4096;
     }
-    address += 4096;
 }
 
 fn reserve_page(address: u64) -> bool {
