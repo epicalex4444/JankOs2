@@ -7,10 +7,6 @@ mod basic_library;
 mod efi_handover;
 
 use basic_library::math::RoundMath;
-
-use basic_library::paging::{
-    init_paging
-};
 use basic_library::print::{
     print,
     print_hex,
@@ -21,54 +17,42 @@ use efi_handover::efi_bindings::{
     EFI_MEMORY_DESCRIPTOR,
     BootInfo,
 };
-use efi_handover::gop_functions;
+use efi_handover::gop_functions::{
+    gop_init,
+    clear_screen
+};
+use basic_library::paging::{
+    request_page,
+    request_pages,
+    free_page,
+    free_pages,
+    init_paging
+};
 
 #[no_mangle]
 pub extern "C" fn _start(boot_info: *const BootInfo) -> u64 {
-    handle_boot_handover(boot_info);
-
-    print_dec(68.round(5) as u32);
-    print("\n");
-
     unsafe {
-        for i in 0..(*boot_info).memory_map_size / (*boot_info).descriptor_size {
-            let descriptor: *const EFI_MEMORY_DESCRIPTOR = ((*boot_info).memory_map as u64 + i * (*boot_info).descriptor_size) as *const EFI_MEMORY_DESCRIPTOR;
-            if (*descriptor).t == 7 {
-                print("start = ");
-                print_hex((*descriptor).physical_start as u32);
-                print(", pages = ");
-                print_dec((*descriptor).number_of_pages as u32);
-                print("\n");
-            }
-        }
+        gop_init((*boot_info).framebuffer);
+
+        init_print((*boot_info).glyphbuffer, (*boot_info).framebuffer, true);
 
         if init_paging((*boot_info).memory_map, (*boot_info).memory_map_size, (*boot_info).descriptor_size) {
             panic!("failed to init paging");
         }
 
-        return (*boot_info).memory_map as u64;
-    }
-}
+        clear_screen();
 
-// Handles the absolutely neccesary setup before anything else can be done.
-fn handle_boot_handover(boot_info: *const BootInfo) -> () {
-    unsafe {
-        gop_functions::gop_init((*boot_info).framebuffer);
+        let address: u64 = request_page();
+        print("requested addresss = ");
+        print_hex(address as u32);
 
-        // Set backround to black
-        gop_functions::plot_rect(
-            0,
-            0,
-            (*(*boot_info).framebuffer).width,
-            (*(*boot_info).framebuffer).height,
-            0,
-            0,
-            0,
-            (*boot_info).framebuffer,
-        );
-        
-        init_print((*boot_info).glyphbuffer, (*boot_info).framebuffer, true);
+        unsafe {
+            let address_ptr: *mut u64 = address as *mut u64;
+            (*address_ptr) = 0xffffffffffffffff;
+        }
 
+        loop {};
+        return 0;
     }
 }
 
