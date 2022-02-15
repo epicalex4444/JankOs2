@@ -11,7 +11,7 @@ impl RoundMath<u64> for u64 {
 
     fn round(&self, round: u64) -> u64{
         return 
-        if (self % round) >= (round / 2){
+        if (self % round) > (round / 2){
             (self / round) + 1
         }
         else{
@@ -32,7 +32,7 @@ impl RoundMath<u32> for u32 {
 
     fn round(&self, round: u32) -> u32{
         return 
-        if (self % round) >= (round / 2){
+        if (self % round) > (round / 2){
             (self / round) + 1
         }
         else{
