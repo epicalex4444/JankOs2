@@ -1,6 +1,6 @@
-use super::bitmap;
-use crate::efi_handover::efi_bindings::EFI_MEMORY_DESCRIPTOR;
-use crate::basic_library::math::RoundMath;
+use crate::bitmap;
+use crate::efi_bindings::EFI_MEMORY_DESCRIPTOR;
+use crate::rounding::RoundMath;
 
 pub static mut BITMAP: bitmap::Bitmap = bitmap::Bitmap{bitmap_ptr: core::ptr::null_mut(), length:1};
 

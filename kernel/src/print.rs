@@ -4,8 +4,8 @@
 //! `print`
 //! `println`
 
-use crate::efi_handover::efi_bindings::Framebuffer;
-use crate::efi_handover::gop_functions;
+use crate::efi_bindings::Framebuffer;
+use crate::gop_functions;
 use core::fmt::{self, Write};
 use spin::Mutex;
 
@@ -80,7 +80,7 @@ static WRITER: Mutex<Writer> = Mutex::new(Writer {
 /// - "{identifier:}, identifier: value" give values inside the formatted text an indentifier
 #[macro_export]
 macro_rules! print {
-    ($($arg:tt)*) => ($crate::basic_library::print::_print(format_args!($($arg)*)));
+    ($($arg:tt)*) => ($crate::print::_print(format_args!($($arg)*)));
 }
 
 /// # Println

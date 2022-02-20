@@ -1,4 +1,8 @@
-use super::RoundMath;
+pub trait RoundMath<T>{
+    fn floor(&self, round:T) -> T;
+    fn ceil(&self, round:T) -> T;
+    fn round(&self, round:T) -> T;
+}
 
 impl RoundMath<u64> for u64 {
     fn floor(&self, round: u64) -> u64 {
