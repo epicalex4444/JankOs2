@@ -9,16 +9,16 @@ OBJFLAGS := -j .text -j .sdata -j .data -j .dynamic -j .dynsym -j .rel -j .rela 
 
 .PHONY: all clean
 
-all: main.efi
+all: bootx64.efi
 
-main.o: main.c
+bootx64.o: bootx64.c
 	clang $(CFLAGS) $< -o $@
 
-main.so: $(CRT0) main.o
+bootx64.so: $(CRT0) bootx64.o
 	ld.lld $^ $(LDFLAGS) -o $@
 
-main.efi: main.so
+bootx64.efi: bootx64.so
 	objcopy $(OBJFLAGS) $< $@
 	
 clean:
-	rm -f main.o main.so main.efi
+	rm -f bootx64.o bootx64.so bootx64.efi
