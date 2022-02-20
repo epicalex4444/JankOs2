@@ -7,19 +7,21 @@
 
 #![allow(dead_code)]
 
-mod basic_library;
-mod efi_handover;
+mod bitmap;
+mod efi_bindings;
+mod gop_functions;
+mod math;
+mod paging;
+mod print;
+mod rounding;
 
-use basic_library::print::Writer;
-
-use efi_handover::efi_bindings::{
-    BootInfo
-};
-use efi_handover::gop_functions::{
+use print::Writer;
+use efi_bindings::BootInfo;
+use gop_functions::{
     gop_init,
     clear_screen
 };
-use basic_library::paging::{
+use paging::{
     request_page,
     init_paging
 };
