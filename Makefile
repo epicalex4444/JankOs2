@@ -7,7 +7,7 @@ OVMF := /usr/share/ovmf/x64/OVMF.fd
 STARTUP := startup.nsh
 FONT := zap-light16.psf
 
-.PHONY: all qemu clean
+.PHONY: all qemu qemu_debug clean
 
 all: $(IMG)
 
