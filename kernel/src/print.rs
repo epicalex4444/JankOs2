@@ -1,11 +1,11 @@
 //! # JankOS printing module for low level safe printing using GOP
 //! 
 //! [`Writer`]
-//! `print`
-//! `println`
+//! [`print`]
+//! [`println`]
 
 use crate::efi_bindings::Framebuffer;
-use crate::gop_functions;
+use crate::gop_functions::plot_pixel;
 use core::fmt::{self, Write};
 use spin::Mutex;
 
@@ -17,10 +17,11 @@ use spin::Mutex;
 /// ```rust
 /// Writer.init((*boot_info).glyphbuffer, (*boot_info).framebuffer, false);
 /// println!("Address: {:#X}", boot_info);
-/// 
-/// // Result
-/// // "Address: 0x1000" 
 /// ```
+/// 
+/// **Result:** 
+/// "Address: 0x1000" 
+
 pub struct Writer {
     cursor: u32,
     max_cursor: u32,
@@ -174,10 +175,11 @@ impl Writer {
                 len * lin
             };
 
-            WRITER.lock().max_cursor = max;
-            WRITER.lock().line_length = len;
-            WRITER.lock().lines_count = lin;
-            WRITER.lock().columns = columns;
+            let mut writer = WRITER.lock();
+            writer.max_cursor = max;
+            writer.line_length = len;
+            writer.lines_count = lin;
+            writer.columns = columns;
         }
     }
 
@@ -203,7 +205,7 @@ impl Writer {
         for i in y..y + 16 {
             for j in x..x + 8 {
                 if (*font_ptr & 0b10000000 >> (j - x)) > 0 {
-                    gop_functions::plot_pixel(j as u32, i as u32, 0xFFu8, 0xFFu8, 0xFFu8)
+                    plot_pixel(j as u32, i as u32, 0xFFu8, 0xFFu8, 0xFFu8)
                 }
             }
             font_ptr = font_ptr.offset(1);
