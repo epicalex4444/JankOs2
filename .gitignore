@@ -9,3 +9,5 @@ kernel/Cargo.lock
 
 *.img
 *.code-workspace
+.cargo
+.vscode

@@ -1,13 +1,12 @@
-BOOTLOADER := bootloader/main.efi
-BOOTLOADER_DEPS := bootloader/main.c
+BOOTLOADER := bootloader/bootx64.efi
+BOOTLOADER_DEPS := bootloader/bootx64.c
 KERNEL := kernel/target/x86_64-kernel/release/kernel
 KERNEL_DEPS := $(shell find -path "./kernel/src/*.rs")
 IMG := JankOs.img
 OVMF := /usr/share/ovmf/x64/OVMF.fd
-STARTUP := startup.nsh
 FONT := zap-light16.psf
 
-.PHONY: all qemu clean
+.PHONY: all qemu qemu_debug clean
 
 all: $(IMG)
 
@@ -17,13 +16,12 @@ $(BOOTLOADER): $(BOOTLOADER_DEPS)
 $(KERNEL): $(KERNEL_DEPS)
 	cd kernel && cargo build --release --target x86_64-kernel.json && cd ..
 
-$(IMG): $(BOOTLOADER) $(STARTUP) $(KERNEL) $(FONT)
+$(IMG): $(BOOTLOADER) $(KERNEL) $(FONT)
 	dd if=/dev/zero of=$@ bs=1k count=1440
 	mformat -i $@ -f 1440 ::
 	mmd -i $@ ::/efi
 	mmd -i $@ ::/efi/boot
 	mcopy -i $@ $(BOOTLOADER) ::/efi/boot
-	mcopy -i $@ $(STARTUP) ::
 	mcopy -i $@ $(KERNEL) ::
 	mcopy -i $@ $(FONT) ::
 

@@ -1,6 +1,5 @@
-
 [build]
-target = "/home/dingo/Documents/JankOS/kernel"
+target = "x86_64-kernel.json"
 
 [unstable]
 build-std-features = ["compiler-builtins-mem"]
