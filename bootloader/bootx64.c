@@ -7,6 +7,7 @@ typedef struct {
 	uint64_t BufferSize;
 	uint32_t Width;
 	uint32_t Height;
+	uint32_t PixelsPerScanLine;
 } Framebuffer;
 
 typedef struct {
@@ -149,6 +150,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 	framebuffer.BufferSize = gop->Mode->FrameBufferSize;
 	framebuffer.Width = gop->Mode->Info->HorizontalResolution;
 	framebuffer.Height = gop->Mode->Info->VerticalResolution;
+	framebuffer.PixelsPerScanLine = gop->Mode->Info->PixelsPerScanLine;
 
 	//get memory map
 	UINTN mMSize = 0;

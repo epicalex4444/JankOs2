@@ -30,19 +30,15 @@ use paging::{
 pub extern "C" fn _start(boot_info: *const BootInfo) -> u64 {
     unsafe {
         gop_init((*boot_info).framebuffer);
-        
+        Writer::init((*boot_info).glyphbuffer, (*boot_info).framebuffer, false);
+        clear_screen();
+
         if init_paging((*boot_info).memory_map, (*boot_info).memory_map_size, (*boot_info).descriptor_size) {
             panic!("failed to init paging");
         }
 
-        clear_screen();
-        Writer::init((*boot_info).glyphbuffer, (*boot_info).framebuffer, false);
-
         let address: u64 = request_page();
         println!("requested address = {:#X}", address);
-
-        let address_ptr: *mut u64 = address as *mut u64;
-        (*address_ptr) = 0xffffffffffffffff;
 
         loop {};
     }
