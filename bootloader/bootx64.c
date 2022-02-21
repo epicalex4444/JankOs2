@@ -79,32 +79,6 @@ uint8_t* LoadFont(EFI_FILE_HANDLE font, EFI_SYSTEM_TABLE *SystemTable) {
 	return glyphBuffer;
 }
 
-void JankPutChar(uint8_t chr, uint32_t x, uint32_t y, Framebuffer framebuffer, uint8_t* glyphBuffer) {
-    uint32_t* pixPtr = framebuffer.BaseAddress;
-    uint8_t* fontPtr = glyphBuffer + chr * 16;
-    for (uint64_t j = y; j < y + 16; ++j) {
-        for (uint64_t i = x; i < x + 8; ++i) {			
-            if ((*fontPtr & (0b10000000 >> (i - x))) > 0) {
-                *(uint32_t*)(pixPtr + i + (j * framebuffer.Width)) = 0xFFFFFFFF;
-            }
-        }
-        ++fontPtr;
-    }
-}
-
-void JankPrint(uint8_t* str, uint32_t x, uint32_t y, Framebuffer framebuffer, uint8_t* glyphBuffer) {
-    char* chr = (char*)str;
-    while(*chr != 0) {
-        JankPutChar(*chr, x, y, framebuffer, glyphBuffer);
-        x += 8;
-        if(x + 8 > framebuffer.Width) {
-            x = 0;
-            y += 16;
-        }
-        chr++;
-    }
-}
-
 EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
 	InitializeLib(ImageHandle, SystemTable);
 
