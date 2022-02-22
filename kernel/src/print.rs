@@ -165,7 +165,7 @@ impl Writer {
         unsafe {
             GB_PTR = gb_ptr;
 
-            let mut len = (*fb_ptr).width / 8 - 2;
+            let mut len = (*fb_ptr).pixels_per_scan_line / 8 - 2;
             let lin = (*fb_ptr).height / 16;
             let max = if columns {
                 len = len / 2 - 1;
