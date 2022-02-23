@@ -4,8 +4,8 @@
 //! `print`
 //! `println`
 
-use crate::efi_bindings::Framebuffer;
-use crate::gop_functions;
+use crate::efi::Framebuffer;
+use crate::gop;
 use core::fmt::{self, Write};
 use spin::Mutex;
 
@@ -203,7 +203,7 @@ impl Writer {
         for i in y..y + 16 {
             for j in x..x + 8 {
                 if (*font_ptr & 0b10000000 >> (j - x)) > 0 {
-                    gop_functions::plot_pixel(j as u32, i as u32, 0xFFu8, 0xFFu8, 0xFFu8)
+                    gop::plot_pixel(j as u32, i as u32, 0xFFu8, 0xFFu8, 0xFFu8)
                 }
             }
             font_ptr = font_ptr.offset(1);
