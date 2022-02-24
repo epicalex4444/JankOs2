@@ -5,40 +5,43 @@
 #![feature(once_cell)]
 #![allow(dead_code)]
 
-mod efi_bindings;
+mod bitmap;
+mod asm;
+mod efi;
+mod gop;
 mod math;
 mod paging;
 mod print;
 
 use print::Writer;
 
-use efi_bindings::BootInfo;
-use paging::{init_paging, request_page};
-
 #[no_mangle]
-pub extern "C" fn _start(boot_info: *const BootInfo) -> u64 {
+pub extern "C" fn _start(boot_info: *const efi::BootInfo) -> u64 {
     unsafe {
-        if init_paging(
-            (*boot_info).memory_map,
-            (*boot_info).memory_map_size,
-            (*boot_info).descriptor_size,
-        ) {
-            panic!("failed to init paging");
-        }
+        gop::gop_init((*boot_info).framebuffer);
         Writer::init((*boot_info).glyphbuffer, (*boot_info).framebuffer, false);
+        gop::clear_screen();
 
-        let address: u64 = request_page();
-        println!("requested address = {:#X}", address);
+        println!("Hello, World!");
 
-        let address_ptr: *mut u64 = address as *mut u64;
-        (*address_ptr) = 0xffffffffffffffff;
+        let memory_map_entries: u64 = (*boot_info).memory_map_size / (*boot_info).descriptor_size;
+        for i in 0..memory_map_entries {
+            let descriptor: *const efi::EFI_MEMORY_DESCRIPTOR = ((*boot_info).memory_map as u64 + i * (*boot_info).descriptor_size) as *const efi::EFI_MEMORY_DESCRIPTOR;
+            println!("physical {:#x}, virtual {:#x}", (*descriptor).physical_start, (*descriptor).virtual_start);
+        }
 
-        loop {}
+        println!("GoodBye, World!");
+
+        loop {
+            asm::hlt();
+        };
     }
 }
 
 #[panic_handler]
 fn panic(_info: &core::panic::PanicInfo) -> ! {
     println!("{}", _info);
-    loop {}
+    loop {
+        asm::hlt();
+    }
 }

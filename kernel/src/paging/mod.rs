@@ -1,7 +1,7 @@
 mod bitmap;
 
 use bitmap::Bitmap;
-use crate::efi_bindings::EFI_MEMORY_DESCRIPTOR;
+use crate::efi::EFI_MEMORY_DESCRIPTOR;
 use crate::math::RoundMath;
 
 static mut BITMAP: Bitmap = Bitmap{bitmap_ptr: core::ptr::null_mut(), length:1};

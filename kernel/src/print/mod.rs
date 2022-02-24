@@ -6,8 +6,8 @@
 
 mod gop_functions;
 
-use crate::efi_bindings::Framebuffer;
-use gop_functions::*;
+use crate::efi::Framebuffer;
+use crate::gop;
 use core::fmt::{self, Write};
 use spin::Mutex;
 
@@ -171,7 +171,7 @@ impl Writer {
 
             GB_PTR = gb_ptr;
 
-            let mut len = (*fb_ptr).width / 8 - 2;
+            let mut len = (*fb_ptr).pixels_per_scan_line / 8 - 2;
             let lin = (*fb_ptr).height / 16;
             let max = if columns {
                 len = len / 2 - 1;
@@ -210,7 +210,11 @@ impl Writer {
         for i in y..y + 16 {
             for j in x..x + 8 {
                 if (*font_ptr & 0b10000000 >> (j - x)) > 0 {
+<<<<<<< HEAD:kernel/src/print/mod.rs
                     plot_pixel(j as u32, i as u32, 0xFFu8, 0xFFu8, 0xFFu8)
+=======
+                    gop::plot_pixel(j as u32, i as u32, 0xFFu8, 0xFFu8, 0xFFu8)
+>>>>>>> 33c98cbaf38c2fef85d52de4cbf44546fdd88266:kernel/src/print.rs
                 }
             }
             font_ptr = font_ptr.offset(1);
