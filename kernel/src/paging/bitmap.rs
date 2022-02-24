@@ -1,7 +1,7 @@
 pub struct Bitmap {
     pub length: u64,
     pub bitmap_ptr: *mut u8,
-}
+}   
 
 impl Bitmap {
     pub fn new(start_addr: *mut u8, size: u64) -> Bitmap {

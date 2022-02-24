@@ -1,5 +1,6 @@
 use crate::efi_bindings::Framebuffer;
 use crate::math::minimum;
+
 static mut FRAMEBUFFER_PTR: *const Framebuffer = core::ptr::null();
 
 pub unsafe fn gop_init(fb_ptr: *const Framebuffer) -> () {

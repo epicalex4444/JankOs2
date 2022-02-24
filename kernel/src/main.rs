@@ -5,9 +5,7 @@
 #![feature(once_cell)]
 #![allow(dead_code)]
 
-mod bitmap;
 mod efi_bindings;
-mod gop_functions;
 mod math;
 mod paging;
 mod print;
@@ -15,14 +13,11 @@ mod print;
 use print::Writer;
 
 use efi_bindings::BootInfo;
-use gop_functions::{clear_screen, gop_init};
 use paging::{init_paging, request_page};
 
 #[no_mangle]
 pub extern "C" fn _start(boot_info: *const BootInfo) -> u64 {
     unsafe {
-        gop_init((*boot_info).framebuffer);
-
         if init_paging(
             (*boot_info).memory_map,
             (*boot_info).memory_map_size,
@@ -30,8 +25,6 @@ pub extern "C" fn _start(boot_info: *const BootInfo) -> u64 {
         ) {
             panic!("failed to init paging");
         }
-
-        clear_screen();
         Writer::init((*boot_info).glyphbuffer, (*boot_info).framebuffer, false);
 
         let address: u64 = request_page();

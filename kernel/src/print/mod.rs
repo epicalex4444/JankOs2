@@ -4,8 +4,10 @@
 //! [`print`]
 //! [`println`]
 
+mod gop_functions;
+
 use crate::efi_bindings::Framebuffer;
-use crate::gop_functions::plot_pixel;
+use gop_functions::*;
 use core::fmt::{self, Write};
 use spin::Mutex;
 
@@ -164,6 +166,9 @@ impl Writer {
     /// ```
     pub fn init(gb_ptr: *const u8, fb_ptr: *const Framebuffer, columns: bool) -> () {
         unsafe {
+            gop_init(fb_ptr);
+            clear_screen();
+
             GB_PTR = gb_ptr;
 
             let mut len = (*fb_ptr).width / 8 - 2;

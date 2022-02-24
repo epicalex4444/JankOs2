@@ -1,8 +1,10 @@
-use crate::bitmap;
+mod bitmap;
+
+use bitmap::Bitmap;
 use crate::efi_bindings::EFI_MEMORY_DESCRIPTOR;
 use crate::math::RoundMath;
 
-pub static mut BITMAP: bitmap::Bitmap = bitmap::Bitmap{bitmap_ptr: core::ptr::null_mut(), length:1};
+static mut BITMAP: Bitmap = Bitmap{bitmap_ptr: core::ptr::null_mut(), length:1};
 
 pub fn init_paging(memory_map: *const EFI_MEMORY_DESCRIPTOR, memory_map_size: u64, descriptor_size: u64) -> bool {
     let mut memory_pages: u64 = 0;
@@ -34,7 +36,7 @@ pub fn init_paging(memory_map: *const EFI_MEMORY_DESCRIPTOR, memory_map_size: u6
 
     //init bitmap
     unsafe {
-        BITMAP = bitmap::Bitmap::new(bitmap_start, memory_pages.ceil(8) / 8);
+        BITMAP = Bitmap::new(bitmap_start, memory_pages.ceil(8) / 8);
     }
 
     let mut bitmap_index: u64 = 0;
