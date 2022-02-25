@@ -7,8 +7,8 @@
 
 #![allow(dead_code)]
 
-mod bitmap;
 mod asm;
+mod bitmap;
 mod efi;
 mod gop;
 mod math;
@@ -27,10 +27,13 @@ pub extern "C" fn _start(boot_info: *const efi::BootInfo) -> u64 {
 
         println!("Hello, World!");
 
-        let memory_map_entries: u64 = (*boot_info).memory_map_size / (*boot_info).descriptor_size;
-        for i in 0..memory_map_entries {
-            let descriptor: *const efi::EFI_MEMORY_DESCRIPTOR = ((*boot_info).memory_map as u64 + i * (*boot_info).descriptor_size) as *const efi::EFI_MEMORY_DESCRIPTOR;
-            println!("physical {:#x}, virtual {:#x}", (*descriptor).physical_start, (*descriptor).virtual_start);
+        if paging::init_paging((*boot_info).memory_map, (*boot_info).memory_map_size, (*boot_info).descriptor_size) {
+            println!("temp function failed");
+        }
+
+        for i in 0..(*boot_info).memory_map_size / (*boot_info).descriptor_size {
+            let descriptor:*const efi::EFI_MEMORY_DESCRIPTOR = ((*boot_info).memory_map as u64 + i * (*boot_info).descriptor_size) as *const efi::EFI_MEMORY_DESCRIPTOR;
+            println!("physical {:#x}, virtual {:#x}, type {}, pages {}, attributes {:#x}", (*descriptor).physical_start, (*descriptor).virtual_start, (*descriptor).r#type, (*descriptor).number_of_pages, (*descriptor).attribute);
         }
 
         println!("GoodBye, World!");

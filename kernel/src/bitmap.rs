@@ -18,7 +18,7 @@ impl Bitmap {
     }
 
     // Gets the state of the bit at index
-    pub fn get_bit(&self, index: u64) -> bool {
+    pub fn get_bit(&mut self, index: u64) -> bool {
         if index < self.length * 8 {
             unsafe {
                 let byte = self.byte_from_index(index);
