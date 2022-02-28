@@ -171,12 +171,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 	uefi_call_wrapper(SystemTable->BootServices->GetMemoryMap, 5, &mMSize, mM, &mMKey, &mMDescSize, &mMDescVersion);
 
 	//exit boot services
-	EFI_STATUS status = uefi_call_wrapper(SystemTable->BootServices->ExitBootServices, 2, ImageHandle, mMKey);
-	if (status != EFI_SUCCESS) {
-		Print(L"exit boot services failed");
-		for (;;) {}
-	}
-
+	uefi_call_wrapper(SystemTable->BootServices->ExitBootServices, 2, ImageHandle, mMKey);
 
 	//set virtual addresses manually since SetVirtualAddressMap doesn't fucking work
 	for (int i = 0; i < mMSize / mMDescSize; ++i) {
