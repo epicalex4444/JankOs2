@@ -22,7 +22,7 @@ impl Bitmap {
         if index < self.length * 8 {
             unsafe {
                 let byte = self.byte_from_index(index);
-                return *byte & 1 << index % 8 > 0; 
+                return (*byte & (1 << index % 8)) > 0; 
             }
         } else {
             panic!("Index out of bounds of bitmap");
@@ -34,7 +34,7 @@ impl Bitmap {
         if index < self.length * 8 {
             unsafe {
                 *(self.byte_from_index(index)) = *(self.byte_from_index(index)) | 1 << index%8;
-            }            
+            }
             return true;
         } else {
             return false;

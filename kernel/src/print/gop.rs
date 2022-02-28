@@ -1,4 +1,4 @@
-use crate::efi_bindings::Framebuffer;
+use crate::efi::Framebuffer;
 use crate::math::minimum;
 
 static mut FRAMEBUFFER_PTR: *const Framebuffer = core::ptr::null();

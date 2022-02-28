@@ -43,14 +43,7 @@ UINT64 FileSize(EFI_FILE_HANDLE FileHandle) {
 
 #define PSF1_MAGIC0	0x36
 #define PSF1_MAGIC1	0x04
-
-#define PSF1_MODE512    0x01
 #define PSF1_MODEHASTAB 0x02
-#define PSF1_MODEHASSEQ 0x04
-#define PSF1_MAXMODE    0x05
-
-#define PSF1_SEPARATOR  0xFFFF
-#define PSF1_STARTSEQ   0xFFFE
 
 typedef struct {
 	uint8_t magic[2];
@@ -152,16 +145,6 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 	framebuffer.Height = gop->Mode->Info->VerticalResolution;
 	framebuffer.PixelsPerScanLine = gop->Mode->Info->PixelsPerScanLine;
 
-	//get memory map
-	UINTN mMSize = 0;
-	EFI_MEMORY_DESCRIPTOR* mM = NULL;
-	UINTN mMKey;
-	UINTN mMDescSize;
-	UINT32 mMDescVersion;
-	uefi_call_wrapper(SystemTable->BootServices->GetMemoryMap, 5, &mMSize, mM, &mMKey, &mMDescSize, &mMDescVersion);
-	uefi_call_wrapper(SystemTable->BootServices->AllocatePool, 3, EfiBootServicesData, mMSize + 2 * mMDescSize, &mM);
-	uefi_call_wrapper(SystemTable->BootServices->GetMemoryMap, 5, &mMSize, mM, &mMKey, &mMDescSize, &mMDescVersion);
-
 	//open font file
 	EFI_FILE_HANDLE Font;
 	uefi_call_wrapper(Volume->Open, 5, Volume, &Font, L"zap-light16.psf", EFI_FILE_MODE_READ, EFI_FILE_READ_ONLY | EFI_FILE_HIDDEN | EFI_FILE_SYSTEM);
@@ -173,8 +156,35 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 	//load glyphBuffer
 	uint8_t* glyphBuffer = LoadFont(Font, SystemTable);
 	if (glyphBuffer == NULL) {
+		Print(L"error loading glyph buffer");
 		return EFI_LOAD_ERROR;
 	}
+
+	//get memory map
+	UINTN mMSize = 0;
+	EFI_MEMORY_DESCRIPTOR* mM = NULL;
+	UINTN mMKey;
+	UINTN mMDescSize;
+	UINT32 mMDescVersion;
+	uefi_call_wrapper(SystemTable->BootServices->GetMemoryMap, 5, &mMSize, mM, &mMKey, &mMDescSize, &mMDescVersion);
+	uefi_call_wrapper(SystemTable->BootServices->AllocatePool, 3, EfiBootServicesData, mMSize + 2 * mMDescSize, &mM);
+	uefi_call_wrapper(SystemTable->BootServices->GetMemoryMap, 5, &mMSize, mM, &mMKey, &mMDescSize, &mMDescVersion);
+
+	//exit boot services
+	EFI_STATUS status = uefi_call_wrapper(SystemTable->BootServices->ExitBootServices, 2, ImageHandle, mMKey);
+	if (status != EFI_SUCCESS) {
+		Print(L"exit boot services failed");
+		for (;;) {}
+	}
+
+
+	//set virtual addresses manually since SetVirtualAddressMap doesn't fucking work
+	for (int i = 0; i < mMSize / mMDescSize; ++i) {
+        EFI_MEMORY_DESCRIPTOR* desc = (EFI_MEMORY_DESCRIPTOR*)((uint64_t)mM + (i * mMDescSize));
+		void* ptr = (void*)desc->PhysicalStart;
+        uefi_call_wrapper(SystemTable->RuntimeServices->ConvertPointer, 2, EFI_OPTIONAL_PTR, &ptr);
+		desc->VirtualStart = (EFI_VIRTUAL_ADDRESS)ptr;
+    }
 
 	BootInfo bootInfo;
 	bootInfo.framebuffer = &framebuffer;
@@ -186,14 +196,9 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 	//define KernelStart function
 	uint64_t (*KernelStart)(BootInfo*) = ((__attribute__((sysv_abi)) uint64_t(*)(BootInfo*))ehdr.e_entry);
 
-	//exit boot services
-	uefi_call_wrapper(SystemTable->BootServices->ExitBootServices, 2, ImageHandle, mMKey);
-
-	Print(L"bootinfo memory pointer: %lu\n", mM);
-
 	//execute kernel
-	uint32_t kernel_val = KernelStart(&bootInfo);
-	Print(L"kernel memory pointer: %lu\n", kernel_val);
+	uint64_t kernel_val = KernelStart(&bootInfo);
+	Print(L"kernel return: %lu\n", kernel_val);
 	
 	return EFI_SUCCESS;
 }
