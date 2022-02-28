@@ -1,3 +1,11 @@
+//! # Bindings for the C efi structs
+//! 
+//! [`EFI_MEMORY_DESCRIPTOR`] 
+//! 
+//! [`Framebuffer`] GOP Framebuffer binding
+//! 
+//! [`BootInfo`] Boot info struct defined in bootloader
+
 #[repr(C)]
 pub struct EFI_MEMORY_DESCRIPTOR {
     pub r#type: u32,
