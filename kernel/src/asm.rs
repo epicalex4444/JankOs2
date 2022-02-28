@@ -194,3 +194,10 @@ pub fn cpuid(eax:*mut u32, ebx:*mut u32, ecx:*mut u32, edx:*mut u32) -> () {
         );
     }
 }
+
+#[inline(always)]
+pub fn cli() -> () {
+    unsafe{
+        asm!("cli")
+    }
+}
