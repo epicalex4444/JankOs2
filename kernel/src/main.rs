@@ -17,7 +17,7 @@ use print::Writer;
 use crate::gdt::init_gdt;
 
 #[no_mangle]
-pub extern "C" fn _start(boot_info: *const efi::BootInfo) -> u64 {
+pub extern "C" fn _start(boot_info: *const efi::BootInfo) -> ! {
     unsafe {
         Writer::init((*boot_info).glyphbuffer, (*boot_info).framebuffer, false);
 
