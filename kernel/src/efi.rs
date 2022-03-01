@@ -8,6 +8,7 @@ pub struct EFI_MEMORY_DESCRIPTOR {
     pub attribute: u64,
 }
 
+//width means resolution width, pixels_per_scan_line is actually how wide the framebuffer is
 #[repr(C)]
 pub struct Framebuffer {
     pub base_address: *mut u32,
@@ -19,9 +20,9 @@ pub struct Framebuffer {
 
 #[repr(C)]
 pub struct BootInfo {
-    pub framebuffer: *const Framebuffer,
+    pub frame_buffer: *const Framebuffer,
     pub memory_map: *const EFI_MEMORY_DESCRIPTOR,
     pub memory_map_size: u64,
     pub descriptor_size: u64,
-    pub glyphbuffer: *const u8,
+    pub glyph_buffer: *const u8,
 }

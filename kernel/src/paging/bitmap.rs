@@ -1,3 +1,4 @@
+//boolean array but each bool uses 1 bit
 pub struct Bitmap {
     pub length: u64,
     pub bitmap_ptr: *mut u8,
@@ -53,15 +54,6 @@ impl Bitmap {
             return true;
         } else {
             return false;
-        }
-    }
-
-    // Get's the byte which contains the given index, useful for printing
-    pub fn get_printable_byte(&mut self, index: u64) -> u8 {
-        if index < self.length * 8 {
-            unsafe { return *(self.bitmap_ptr.offset((index / 8) as isize)) }
-        } else {
-            panic!("Index outside bounds of the array");
         }
     }
 }

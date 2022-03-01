@@ -14,16 +14,15 @@ mod print;
 
 use print::Writer;
 
-use crate::gdt::init_gdt;
-
 #[no_mangle]
 pub extern "C" fn _start(boot_info: *const efi::BootInfo) -> ! {
     unsafe {
-        Writer::init((*boot_info).glyphbuffer, (*boot_info).framebuffer, false);
+        Writer::init((*boot_info).glyph_buffer, (*boot_info).frame_buffer, false);
 
         println!("Hello, World!");
 
-        init_gdt();
+        gdt::init_gdt();
+        paging::init_paging((*boot_info).memory_map, (*boot_info).memory_map_size, (*boot_info).descriptor_size);
 
         println!("GoodBye, World!");
 

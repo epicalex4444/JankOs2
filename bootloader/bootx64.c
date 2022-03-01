@@ -3,42 +3,42 @@
 #include <elf.h>
 
 typedef struct {
-	uint32_t *BaseAddress;
-	uint64_t BufferSize;
-	uint32_t Width;
-	uint32_t Height;
-	uint32_t PixelsPerScanLine;
-} Framebuffer;
+	uint32_t *base_address;
+	uint64_t buffer_size;
+	uint32_t width;
+	uint32_t height;
+	uint32_t pixels_per_scan_line;
+} FrameBuffer;
 
 typedef struct {
-	Framebuffer* framebuffer;
-	EFI_MEMORY_DESCRIPTOR* mM;
-	uint64_t mMSize;
-	uint64_t mMDescSize;
-	uint8_t* glyphBuffer;
+	FrameBuffer* frame_buffer;
+	EFI_MEMORY_DESCRIPTOR* memory_map;
+	uint64_t memory_map_size;
+	uint64_t descriptor_size;
+	uint8_t* glyph_buffer;
 } BootInfo;
 
 //returns the file handle to the volume that the efi file is in
-EFI_FILE_HANDLE GetVolume(EFI_HANDLE image) {
+EFI_FILE_HANDLE get_volume(EFI_HANDLE image) {
 	EFI_LOADED_IMAGE *loaded_image = NULL;
-	EFI_GUID lipGuid = EFI_LOADED_IMAGE_PROTOCOL_GUID;
-	EFI_FILE_IO_INTERFACE *IOVolume;
-	EFI_GUID fsGuid = EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID;
-	EFI_FILE_HANDLE Volume;
-	uefi_call_wrapper(BS->HandleProtocol, 3, image, &lipGuid, (void**)&loaded_image);
-	uefi_call_wrapper(BS->HandleProtocol, 3, loaded_image->DeviceHandle, &fsGuid, (VOID*)&IOVolume);
-	uefi_call_wrapper(IOVolume->OpenVolume, 2, IOVolume, &Volume);
-	return Volume;
+	EFI_GUID image_guid = EFI_LOADED_IMAGE_PROTOCOL_GUID;
+	EFI_FILE_IO_INTERFACE *io;
+	EFI_GUID fs_guid = EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID;
+	EFI_FILE_HANDLE volume;
+	uefi_call_wrapper(BS->HandleProtocol, 3, image, &image_guid, (void**)&loaded_image);
+	uefi_call_wrapper(BS->HandleProtocol, 3, loaded_image->DeviceHandle, &fs_guid, (VOID*)&io);
+	uefi_call_wrapper(io->OpenVolume, 2, io, &volume);
+	return volume;
 }
 
 //returns length of a file in bytes
-UINT64 FileSize(EFI_FILE_HANDLE FileHandle) {
-	UINT64 ret;
-	EFI_FILE_INFO *FileInfo;
-	FileInfo = LibFileInfo(FileHandle);
-	ret = FileInfo->FileSize;
-	FreePool(FileInfo);
-	return ret;
+UINT64 file_length(EFI_FILE_HANDLE file_handle) {
+	UINT64 length;
+	EFI_FILE_INFO *file_info;
+	file_info = LibFileInfo(file_handle);
+	length = file_info->FileSize;
+	FreePool(file_info);
+	return length;
 }
 
 #define PSF1_MAGIC0	0x36
@@ -49,11 +49,11 @@ typedef struct {
 	uint8_t magic[2];
 	uint8_t mode;
 	uint8_t charsize;
-} PSF1_HEADER;
+} Psf1Header;
 
-uint8_t* LoadFont(EFI_FILE_HANDLE font, EFI_SYSTEM_TABLE *SystemTable) {
-	PSF1_HEADER psf1_hdr;
-	UINTN size = sizeof(PSF1_HEADER);
+uint8_t* load_font(EFI_FILE_HANDLE font) {
+	Psf1Header psf1_hdr;
+	UINTN size = sizeof(Psf1Header);
 	uefi_call_wrapper(font->Read, 3, font, &size, &psf1_hdr);
 
 	if (psf1_hdr.magic[0] != PSF1_MAGIC0
@@ -64,25 +64,25 @@ uint8_t* LoadFont(EFI_FILE_HANDLE font, EFI_SYSTEM_TABLE *SystemTable) {
 		return NULL;
 	}
 
-	UINTN glyphBufferSize = psf1_hdr.charsize * 256;
-	uint8_t* glyphBuffer;
+	UINTN glyph_buffer_size = psf1_hdr.charsize * 256;
+	uint8_t* glyph_buffer;
 	uefi_call_wrapper(font->SetPosition, 2, font, size);
-	uefi_call_wrapper(SystemTable->BootServices->AllocatePool, 3, EfiLoaderData, glyphBufferSize, (void**)&glyphBuffer);
-	uefi_call_wrapper(font->Read, 3, font, &glyphBufferSize, glyphBuffer);
+	uefi_call_wrapper(BS->AllocatePool, 3, EfiLoaderData, glyph_buffer_size, (void**)&glyph_buffer);
+	uefi_call_wrapper(font->Read, 3, font, &glyph_buffer_size, glyph_buffer);
 
-	return glyphBuffer;
+	return glyph_buffer;
 }
 
-EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
-	InitializeLib(ImageHandle, SystemTable);
+EFI_STATUS EFIAPI efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
+	InitializeLib(image_handle, system_table);
 
 	//get file handle to the kernel
-	EFI_FILE_HANDLE Volume = GetVolume(ImageHandle);
-	EFI_FILE_HANDLE Kernel;
-	uefi_call_wrapper(Volume->Open, 5, Volume, &Kernel, L"kernel", EFI_FILE_MODE_READ, EFI_FILE_READ_ONLY | EFI_FILE_HIDDEN | EFI_FILE_SYSTEM);
+	EFI_FILE_HANDLE volume = get_volume(image_handle);
+	EFI_FILE_HANDLE kernel;
+	uefi_call_wrapper(volume->Open, 5, volume, &kernel, L"kernel", EFI_FILE_MODE_READ, EFI_FILE_READ_ONLY | EFI_FILE_HIDDEN | EFI_FILE_SYSTEM);
 
 	//check kernel exists
-	if (Kernel == NULL) {
+	if (kernel == NULL) {
 		Print(L"kernel not found\n");
 		return EFI_LOAD_ERROR;
 	}
@@ -90,7 +90,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 	//read the elf header
 	Elf64_Ehdr ehdr;
 	UINTN size = sizeof(Elf64_Ehdr);
-	uefi_call_wrapper(Kernel->Read, 3, Kernel, &size, &ehdr);
+	uefi_call_wrapper(kernel->Read, 3, kernel, &size, &ehdr);
 
 	//check the elf header
 	if (ehdr.e_ident[EI_MAG0] != 0x7F
@@ -112,20 +112,20 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 		//read program header
 		Elf64_Phdr phdr;
 		UINTN size = sizeof(Elf64_Phdr);
-		uefi_call_wrapper(Kernel->SetPosition, 2, Kernel, offset);
-		uefi_call_wrapper(Kernel->Read, 3, Kernel, &size, &phdr);
+		uefi_call_wrapper(kernel->SetPosition, 2, kernel, offset);
+		uefi_call_wrapper(kernel->Read, 3, kernel, &size, &phdr);
 
 		//if the program header says the data is loadable we load it
 		if (phdr.p_type == PT_LOAD) {
 			//allocate memory for program data
 			int pages = (phdr.p_memsz + 0x1000 - 1) / 0x1000;
 			Elf64_Addr segment = phdr.p_paddr;
-			uefi_call_wrapper(SystemTable->BootServices->AllocatePages, 4, AllocateAddress, EfiLoaderData, pages, &segment);
+			uefi_call_wrapper(BS->AllocatePages, 4, AllocateAddress, EfiLoaderData, pages, &segment);
 
 			//write program data into memory
-			uefi_call_wrapper(Kernel->SetPosition, 2, Kernel, phdr.p_offset);
+			uefi_call_wrapper(kernel->SetPosition, 2, kernel, phdr.p_offset);
 			UINTN size = phdr.p_filesz;
-			uefi_call_wrapper(Kernel->Read, 3, Kernel, &size, (void*)segment);
+			uefi_call_wrapper(kernel->Read, 3, kernel, &size, (void*)segment);
 		}
 
 		//point to next program header
@@ -133,66 +133,58 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 	}
 
 	//get graphics output protocol
-	EFI_GUID gopGUID = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
+	EFI_GUID gop_guid = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
 	EFI_GRAPHICS_OUTPUT_PROTOCOL *gop;
-	uefi_call_wrapper(SystemTable->BootServices->LocateProtocol, 3, &gopGUID, NULL, (VOID**)&gop);
+	uefi_call_wrapper(BS->LocateProtocol, 3, &gop_guid, NULL, (VOID**)&gop);
 
 	//define framebuffer
-	Framebuffer framebuffer;
-	framebuffer.BaseAddress = (void*)gop->Mode->FrameBufferBase;
-	framebuffer.BufferSize = gop->Mode->FrameBufferSize;
-	framebuffer.Width = gop->Mode->Info->HorizontalResolution;
-	framebuffer.Height = gop->Mode->Info->VerticalResolution;
-	framebuffer.PixelsPerScanLine = gop->Mode->Info->PixelsPerScanLine;
+	FrameBuffer frame_buffer;
+	frame_buffer.base_address = (void*)gop->Mode->FrameBufferBase;
+	frame_buffer.buffer_size = gop->Mode->FrameBufferSize;
+	frame_buffer.width = gop->Mode->Info->HorizontalResolution;
+	frame_buffer.height = gop->Mode->Info->VerticalResolution;
+	frame_buffer.pixels_per_scan_line = gop->Mode->Info->PixelsPerScanLine;
 
 	//open font file
-	EFI_FILE_HANDLE Font;
-	uefi_call_wrapper(Volume->Open, 5, Volume, &Font, L"zap-light16.psf", EFI_FILE_MODE_READ, EFI_FILE_READ_ONLY | EFI_FILE_HIDDEN | EFI_FILE_SYSTEM);
-	if (Font == NULL) {
+	EFI_FILE_HANDLE font;
+	uefi_call_wrapper(volume->Open, 5, volume, &font, L"zap-light16.psf", EFI_FILE_MODE_READ, EFI_FILE_READ_ONLY | EFI_FILE_HIDDEN | EFI_FILE_SYSTEM);
+	if (font == NULL) {
 		Print(L"font not found\n");
 		return EFI_LOAD_ERROR;
 	}
 
 	//load glyphBuffer
-	uint8_t* glyphBuffer = LoadFont(Font, SystemTable);
-	if (glyphBuffer == NULL) {
+	uint8_t* glyph_buffer = load_font(font);
+	if (glyph_buffer == NULL) {
 		Print(L"error loading glyph buffer");
 		return EFI_LOAD_ERROR;
 	}
 
 	//get memory map
-	UINTN mMSize = 0;
-	EFI_MEMORY_DESCRIPTOR* mM = NULL;
-	UINTN mMKey;
-	UINTN mMDescSize;
-	UINT32 mMDescVersion;
-	uefi_call_wrapper(SystemTable->BootServices->GetMemoryMap, 5, &mMSize, mM, &mMKey, &mMDescSize, &mMDescVersion);
-	uefi_call_wrapper(SystemTable->BootServices->AllocatePool, 3, EfiBootServicesData, mMSize + 2 * mMDescSize, &mM);
-	uefi_call_wrapper(SystemTable->BootServices->GetMemoryMap, 5, &mMSize, mM, &mMKey, &mMDescSize, &mMDescVersion);
+	UINTN memory_map_size = 0;
+	EFI_MEMORY_DESCRIPTOR* memory_map = NULL;
+	UINTN memory_map_key;
+	UINTN descriptor_size;
+	UINT32 descriptor_version;
+	uefi_call_wrapper(BS->GetMemoryMap, 5, &memory_map_size, memory_map, &memory_map_key, &descriptor_size, &descriptor_version);
+	uefi_call_wrapper(BS->AllocatePool, 3, EfiBootServicesData, memory_map_size + 2 * descriptor_size, &memory_map);
+	uefi_call_wrapper(BS->GetMemoryMap, 5, &memory_map_size, memory_map, &memory_map_key, &descriptor_size, &descriptor_version);
 
 	//exit boot services
-	uefi_call_wrapper(SystemTable->BootServices->ExitBootServices, 2, ImageHandle, mMKey);
+	uefi_call_wrapper(BS->ExitBootServices, 2, image_handle, memory_map_key);
 
-	//set virtual addresses manually since SetVirtualAddressMap doesn't fucking work
-	for (int i = 0; i < mMSize / mMDescSize; ++i) {
-        EFI_MEMORY_DESCRIPTOR* desc = (EFI_MEMORY_DESCRIPTOR*)((uint64_t)mM + (i * mMDescSize));
-		void* ptr = (void*)desc->PhysicalStart;
-        uefi_call_wrapper(SystemTable->RuntimeServices->ConvertPointer, 2, EFI_OPTIONAL_PTR, &ptr);
-		desc->VirtualStart = (EFI_VIRTUAL_ADDRESS)ptr;
-    }
-
-	BootInfo bootInfo;
-	bootInfo.framebuffer = &framebuffer;
-	bootInfo.mM = mM;
-	bootInfo.mMSize = mMSize;
-	bootInfo.mMDescSize = mMDescSize;
-	bootInfo.glyphBuffer = glyphBuffer;
+	BootInfo boot_info;
+	boot_info.frame_buffer = &frame_buffer;
+	boot_info.memory_map = memory_map;
+	boot_info.memory_map_size = memory_map_size;
+	boot_info.descriptor_size = memory_map_size;
+	boot_info.glyph_buffer = glyph_buffer;
 
 	//define KernelStart function
 	void (*KernelStart)(BootInfo*) = ((__attribute__((sysv_abi)) void(*)(BootInfo*))ehdr.e_entry);
 
 	//execute kernel
-	KernelStart(&bootInfo);
+	KernelStart(&boot_info);
 	
 	return EFI_SUCCESS;
 }

@@ -23,7 +23,6 @@ use spin::Mutex;
 /// 
 /// **Result:** 
 /// "Address: 0x1000" 
-
 pub struct Writer {
     cursor: u32,
     max_cursor: u32,
@@ -44,8 +43,6 @@ static WRITER: Mutex<Writer> = Mutex::new(Writer {
     lines_count: 37,
     columns: false,
 });
-
-
 
 /// # Print
 /// Prints formatted text to the screen
@@ -140,9 +137,7 @@ impl fmt::Write for Writer {
     }
 }
 
-
 impl Writer {
-
     /// Initialises the writer used in the print! and println! macros
     /// 
     /// ## Arguments
@@ -193,7 +188,6 @@ impl Writer {
     }
 
     // Prints a character aligned with the character buffer grid
-    #[inline(always)]
     unsafe fn place_char(&mut self, c: u8) {
         let loc = self.cursor;
         let x;
@@ -210,7 +204,7 @@ impl Writer {
         for i in y..y + 16 {
             for j in x..x + 8 {
                 if (*font_ptr & 0b10000000 >> (j - x)) > 0 {
-                    plot_pixel(j as u32, i as u32, 0xFFu8, 0xFFu8, 0xFFu8)
+                    plot_pixel(j as u32, i as u32, 0xFFFFFFu32)
                 }
             }
             font_ptr = font_ptr.offset(1);

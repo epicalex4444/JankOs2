@@ -2,8 +2,6 @@ bootloader/*.o
 bootloader/*.so
 bootloader/*.efi
 
-.cargo
-
 kernel/target
 
 *.img
