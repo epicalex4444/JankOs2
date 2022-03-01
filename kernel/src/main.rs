@@ -7,10 +7,10 @@
 
 mod asm;
 mod efi;
+mod gdt;
+mod math;
 mod paging;
 mod print;
-mod math;
-mod gdt;
 
 use print::Writer;
 
@@ -24,13 +24,12 @@ pub extern "C" fn _start(boot_info: *const efi::BootInfo) -> ! {
         println!("Hello, World!");
 
         init_gdt();
-        
 
         println!("GoodBye, World!");
 
         loop {
             asm::hlt();
-        };
+        }
     }
 }
 
