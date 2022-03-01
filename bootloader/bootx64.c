@@ -189,11 +189,10 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
 	bootInfo.glyphBuffer = glyphBuffer;
 
 	//define KernelStart function
-	uint64_t (*KernelStart)(BootInfo*) = ((__attribute__((sysv_abi)) uint64_t(*)(BootInfo*))ehdr.e_entry);
+	void (*KernelStart)(BootInfo*) = ((__attribute__((sysv_abi)) void(*)(BootInfo*))ehdr.e_entry);
 
 	//execute kernel
-	uint64_t kernel_val = KernelStart(&bootInfo);
-	Print(L"kernel return: %lu\n", kernel_val);
+	KernelStart(&bootInfo);
 	
 	return EFI_SUCCESS;
 }
