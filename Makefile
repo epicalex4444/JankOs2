@@ -29,7 +29,7 @@ qemu: $(IMG) $(OVMF)
 	qemu-system-x86_64 -drive file=$(IMG),format=raw -bios $(OVMF) -net none
 
 qemu_debug: $(IMG) $(OVMF)
-	qemu-system-x86_64 -drive file=$(IMG),format=raw -bios $(OVMF) -net none -monitor stdio
+	qemu-system-x86_64 -drive file=$(IMG),format=raw -bios $(OVMF) -net none -monitor stdio -d cpu_reset 
 
 clean:
 	rm -f $(IMG)

@@ -1,6 +1,6 @@
-use crate::asm::cli;
-use core::{arch::asm, mem::size_of};
-use lazy_static::lazy_static;
+use crate::println;
+use core::mem::size_of;
+use lazy_static::{lazy_static, __Deref};
 
 #[repr(C, packed)]
 struct GDTDescriptor {
@@ -12,6 +12,19 @@ struct Segment {
     segment_descriptor: u64,
 }
 
+impl Segment {
+    pub fn new(access: u8, flags: u8, limit: u32) -> Segment {
+        let mut seg = (access as u64) << 40;
+        seg |= ((flags & 0b00001111) as u64) << 52;
+
+        seg |= ((limit & 0xFFFF) as u64) << 0;
+        seg |= (((limit & 0xF0000) >> 16) as u64) << 48;
+        return Segment {
+            segment_descriptor: seg,
+        };
+    }
+}
+
 #[repr(C, packed)]
 struct SysSegment {
     segment_first: u64,
@@ -20,8 +33,7 @@ struct SysSegment {
 
 impl SysSegment {
     pub fn new(access: u8, flags: u8, limit: u32, base: u64) -> SysSegment {
-        let mut seg_1 = 0u64;
-        seg_1 = (access as u64) << 40;
+        let mut seg_1 = (access as u64) << 40;
 
         seg_1 |= ((flags & 0b00001111) as u64) << 52;
 
@@ -48,7 +60,7 @@ impl SysSegment {
         self.segment_first |= (((self as *mut SysSegment) as u64 & 0xFF0000) >> 16) << 32;
         self.segment_first |= (((self as *mut SysSegment) as u64 & 0xFF000000) >> 20) << 56;
 
-        self.segment_second = (self as *mut SysSegment) as u64 & 0xFFFFFFFF00000000;
+        self.segment_second = ((self as *mut SysSegment) as u64 & 0xFFFFFFFF00000000) >> 32;
     }
 
     fn set_limit(&mut self) -> () {
@@ -58,53 +70,44 @@ impl SysSegment {
     }
 }
 
-impl Segment {
-    pub fn new(access: u8, flags: u8, limit: u32) -> Segment {
-        let mut seg = 0u64;
-        seg = (access as u64) << 40;
-        seg |= ((flags & 0b00001111) as u64) << 52;
-
-        seg |= ((limit & 0xFFFF) as u64) << 0;
-        seg |= (((limit & 0xF0000) >> 16) as u64) << 48;
-        return Segment {
-            segment_descriptor: seg,
-        };
-    }
-}
-
+#[repr(C, packed)]
 struct GDTable {
     null: Segment,
     kernel_code: Segment,
     kernel_data: Segment,
+    user_null: Segment,
     user_code: Segment,
     user_data: Segment,
-    task_state: SysSegment,
+    //task_state: SysSegment,
 }
-
+ 
 lazy_static! {
     static ref TABLE: GDTable = GDTable {
         null: Segment::new(0, 0, 0),
         kernel_code: Segment::new(0x9A, 0xA, 0xFFFFF),
-        kernel_data: Segment::new(0x92, 0xC, 0xFFFFF),
-        user_code: Segment::new(0xFA, 0xA, 0xFFFFF),
-        user_data: Segment::new(0xF2, 0xC, 0xFFFFF),
-        task_state: SysSegment::new(0x89, 0x0, 0, 0),
+        kernel_data: Segment::new(0x92, 0xA, 0xFFFFF),
+        user_null: Segment::new(0,0,0),
+        user_code: Segment::new(0x9A, 0xA, 0xFFFFF),
+        user_data: Segment::new(0x92, 0xA, 0xFFFFF),
+        //task_state: SysSegment::new(0x89, 0x0, 0, 0),
     };
 }
 
-pub fn init_gdt() -> () {
-    cli();
-    unsafe {
-        let gdt_desc = GDTDescriptor {
-            size: size_of::<TABLE>() as u16 - 1,
-            offset: (&TABLE as *const TABLE) as u64,
-        };
-        lgdt(&gdt_desc);
-    }
+extern "C" {
+    fn load_gdt(_gdt_descriptor_pointer: *const GDTDescriptor) -> ();
+    fn reload_segments() -> ();
 }
 
-fn lgdt(gdtr: *const GDTDescriptor) {
+pub fn init_gdt() -> () {
     unsafe {
-        asm!("lgdt [rdi]");
+        let gdt_desc = GDTDescriptor {
+            size: (size_of::<GDTable>() as u16) - 1,
+            offset: (TABLE.deref() as *const GDTable) as u64,
+        };
+
+        load_gdt(&gdt_desc);
+        println!(0x0022FF22; "-- Loaded GDT");
+        reload_segments();
+        println!(0x0022FF22; "-- Reloaded CS registers");
     }
 }

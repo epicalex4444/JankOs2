@@ -1,7 +1,9 @@
 //! # JankOS printing module for low level safe printing using GOP
 //! 
 //! [`Writer`]
+//! 
 //! [`print`]
+//! 
 //! [`println`]
 
 mod gop;
@@ -29,6 +31,7 @@ pub struct Writer {
     max_cursor: u32,
     line_length: u32,
     lines_count: u32,
+    colour: u32,
     columns: bool,
 }
 
@@ -42,10 +45,9 @@ static WRITER: Mutex<Writer> = Mutex::new(Writer {
     max_cursor: 0,
     line_length: 98,
     lines_count: 37,
+    colour: 0x00FFFFFF,
     columns: false,
 });
-
-
 
 /// # Print
 /// Prints formatted text to the screen
@@ -53,6 +55,15 @@ static WRITER: Mutex<Writer> = Mutex::new(Writer {
 /// ## Arguments
 /// * 'string' - the formatable text to be printed to the screen
 /// * 'format_args' - the arguments for formatting of the string text
+/// 
+/// * 'colour' - is an optional argument that must preceede the string arguments and must be seperatedd using a ';'
+/// 
+/// ```
+/// let w = "World!"
+/// print!(0x00FF2222; "hello {}", w)
+/// ```
+/// 
+/// Will produce the the statement "hello World!" in a bright red colour
 /// 
 /// ## Example
 /// ```
@@ -83,6 +94,7 @@ static WRITER: Mutex<Writer> = Mutex::new(Writer {
 /// - "{identifier:}, identifier: value" give values inside the formatted text an indentifier
 #[macro_export]
 macro_rules! print {
+    ($c:expr; $($arg:tt)*) => ($crate::print::_print_colour($c, format_args!($($arg)*)));
     ($($arg:tt)*) => ($crate::print::_print(format_args!($($arg)*)));
 }
 
@@ -125,6 +137,7 @@ macro_rules! print {
 #[macro_export]
 macro_rules! println {
     () => ($crate::print!("\n"));
+    ($c:expr; $($arg:tt)*) => ($crate::print!($c; "{}\n", format_args!($($arg)*)));
     ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
 }
 
@@ -133,13 +146,20 @@ pub fn _print(args: fmt::Arguments ){
     WRITER.lock().write_fmt(args).unwrap();
 }
 
+#[doc(hidden)]
+pub fn _print_colour(c: u32, args: fmt::Arguments){
+    let prev_colour = WRITER.lock().colour;
+    WRITER.lock().colour = c;
+    WRITER.lock().write_fmt(args).unwrap();
+    WRITER.lock().colour = prev_colour;
+}
+
 impl fmt::Write for Writer {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         self.print(s);
         return Ok(());
     }
 }
-
 
 impl Writer {
 
@@ -193,7 +213,6 @@ impl Writer {
     }
 
     // Prints a character aligned with the character buffer grid
-    #[inline(always)]
     unsafe fn place_char(&mut self, c: u8) {
         let loc = self.cursor;
         let x;
@@ -210,13 +229,39 @@ impl Writer {
         for i in y..y + 16 {
             for j in x..x + 8 {
                 if (*font_ptr & 0b10000000 >> (j - x)) > 0 {
-                    plot_pixel(j as u32, i as u32, 0xFFu8, 0xFFu8, 0xFFu8)
+                    plot_pixel(j as u32, i as u32, self.colour)
                 }
             }
             font_ptr = font_ptr.offset(1);
         }
         self.inc_cursor(1);
     }
+
+    pub unsafe fn set_colour(&self, rgb: u8){
+        static mut COLOUR: u8 = 0;
+        COLOUR = rgb;
+    }
+
+    // fn get_colour(&self, index: u32) -> u32{
+    //     if index < 43 {
+    //         return ((index*6%255) << 16) + (255);
+    //     }
+    //     else if index < 85{
+    //         return (255 << 16) + (255 - index*6) % 255;
+    //     }
+    //     else if index < 128{
+    //         return (255 << 16) + ((index*6) % 255 << 8);
+    //     }
+    //     else if index < 171{
+    //         return ((255 - index*6) % 255 << 16) + (255 << 8);
+    //     }
+    //     else if index < 213{
+    //         return (255 << 8) + (index * 6) % 255;
+    //     }
+    //     else{
+    //         return ((255 - index*6)%255 << 8) + 255;
+    //     }
+    // }
 
     // Moves cursor to next line
     unsafe fn newline(&mut self) -> () {

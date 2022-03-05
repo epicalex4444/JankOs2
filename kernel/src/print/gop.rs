@@ -1,3 +1,7 @@
+//! # Graphics Interchage Protocol
+//! 
+//! Functions to interact with the GOP [`Framebuffer`] to draw graphics to the screen
+
 use crate::efi::Framebuffer;
 use crate::math::minimum;
 
@@ -7,10 +11,9 @@ pub unsafe fn gop_init(fb_ptr: *const Framebuffer) -> () {
     FRAMEBUFFER_PTR = fb_ptr;
 }
 
-pub fn plot_pixel(x:u32, y:u32, r:u8, g:u8, b:u8) -> () {
-    let colour:u32 = (u32::from(r) << 16) + (u32::from(g) << 8) + u32::from(b);    
+pub fn plot_pixel(x:u32, y:u32, rgb: u32) -> () {
     unsafe{
-        *((*FRAMEBUFFER_PTR).base_address.offset(((*FRAMEBUFFER_PTR).width * y) as isize ).offset((x) as isize)) = colour;
+        *((*FRAMEBUFFER_PTR).base_address.offset(((*FRAMEBUFFER_PTR).width * y) as isize ).offset((x) as isize)) = rgb;
     }   
 }
 
@@ -25,8 +28,8 @@ pub unsafe fn plot_rect(x:u32, y:u32, width:u32, height:u32, r:u8, g:u8, b:u8) -
     let actual_width = minimum(width, (*FRAMEBUFFER_PTR).width - x);
 
     for _ in y..y + actual_height {
-        for _ in x..x + actual_width {
-                *((*FRAMEBUFFER_PTR).base_address.offset(offset as isize)) = colour;
+        for _ in x..x + actual_width {            
+            *((*FRAMEBUFFER_PTR).base_address.offset(offset as isize)) = colour;
             offset += 1;
         }
         offset += (*FRAMEBUFFER_PTR).width - actual_width;
