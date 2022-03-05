@@ -8,6 +8,8 @@
 
 mod asm;
 mod efi;
+mod gdt;
+mod math;
 mod paging;
 mod print;
 mod math;
@@ -35,7 +37,7 @@ pub extern "C" fn _start(boot_info: *const efi::BootInfo) -> ! {
 
         loop {
             asm::hlt();
-        };
+        }
     }
 }
 

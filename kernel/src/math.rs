@@ -1,4 +1,16 @@
-use super::RoundMath;
+pub fn maximum(a: u32, b: u32) -> u32 {
+    return if a > b { a } else { b };
+}
+
+pub fn minimum(a: u32, b: u32) -> u32 {
+    return if a < b { a } else { b };
+}
+
+pub trait RoundMath<T> {
+    fn floor(&self, round: T) -> T;
+    fn ceil(&self, round: T) -> T;
+    fn round(&self, round: T) -> T;
+}
 
 impl RoundMath<u64> for u64 {
     fn floor(&self, round: u64) -> u64 {
@@ -6,10 +18,10 @@ impl RoundMath<u64> for u64 {
     }
 
     fn ceil(&self, round: u64) -> u64 {
-        return (self / round + if self % round != 0 {1} else {0}) * round;
+        return (self / round + if self % round != 0 { 1 } else { 0 }) * round;
     }
 
-    fn round(&self, round: u64) -> u64{
+    fn round(&self, round: u64) -> u64 {
         if (self % round) > (round / 2) {
             return (self / round + 1) * round;
         } else {
@@ -24,7 +36,7 @@ impl RoundMath<u32> for u32 {
     }
 
     fn ceil(&self, round: u32) -> u32 {
-        return (self / round + if self % round != 0 {1} else {0}) * round;
+        return (self / round + if self % round != 0 { 1 } else { 0 }) * round;
     }
 
     fn round(&self, round: u32) -> u32 {
@@ -32,20 +44,20 @@ impl RoundMath<u32> for u32 {
             return (self / round + 1) * round;
         } else {
             return self / round * round;
-        } 
+        }
     }
 }
 
-impl RoundMath<i64> for i64{
+impl RoundMath<i64> for i64 {
     fn floor(&self, round: i64) -> i64 {
         return (self / round) * round;
     }
 
-    fn ceil(&self, round: i64) -> i64{
+    fn ceil(&self, round: i64) -> i64 {
         if self < &0 {
-            return (self / round - if self % round != 0 {1} else {0}) * round;
+            return (self / round - if self % round != 0 { 1 } else { 0 }) * round;
         } else {
-            return (self / round + if self % round != 0 {1} else {0}) * round;
+            return (self / round + if self % round != 0 { 1 } else { 0 }) * round;
         }
     }
 
@@ -55,13 +67,13 @@ impl RoundMath<i64> for i64{
                 return ((self / round) - 1) * round;
             } else {
                 return self / round * round;
-            }            
+            }
         } else {
             if (self % round) >= (round / 2) {
                 return ((self / round) + 1) * round;
             } else {
                 return self / round * round;
-            }  
+            }
         }
     }
 }
@@ -71,13 +83,12 @@ impl RoundMath<i32> for i32 {
         return (self / round) * round;
     }
 
-    fn ceil(&self, round: i32) -> i32{
+    fn ceil(&self, round: i32) -> i32 {
         if self < &0 {
-            return (self / round - if self % round != 0 {1} else {0}) * round;
+            return (self / round - if self % round != 0 { 1 } else { 0 }) * round;
         } else {
-            return (self / round + if self % round != 0 {1} else {0}) * round;
+            return (self / round + if self % round != 0 { 1 } else { 0 }) * round;
         }
-        
     }
 
     fn round(&self, round: i32) -> i32 {
@@ -86,13 +97,13 @@ impl RoundMath<i32> for i32 {
                 return (self / round - 1) * round;
             } else {
                 return self / round * round;
-            }            
+            }
         } else {
             if (self % round) >= (round / 2) {
                 return (self / round + 1) * round;
             } else {
                 return self / round * round;
-            }  
+            }
         }
     }
 }

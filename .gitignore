@@ -2,10 +2,7 @@ bootloader/*.o
 bootloader/*.so
 bootloader/*.efi
 
-.cargo
-
 kernel/target
-kernel/Cargo.lock
 
 *.img
 *.code-workspace

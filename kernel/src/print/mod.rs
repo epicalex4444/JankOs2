@@ -25,7 +25,6 @@ use spin::Mutex;
 /// 
 /// **Result:** 
 /// "Address: 0x1000" 
-
 pub struct Writer {
     cursor: u32,
     max_cursor: u32,
@@ -162,7 +161,6 @@ impl fmt::Write for Writer {
 }
 
 impl Writer {
-
     /// Initialises the writer used in the print! and println! macros
     /// 
     /// ## Arguments
