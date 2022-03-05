@@ -1,6 +1,7 @@
-use crate::asm;
+mod compatability_mode;
+
+use crate::{asm, println};
 use crate::efi::EFI_MEMORY_DESCRIPTOR;
-use crate::gdt;
 
 macro_rules! EFI_CONVENTIONAL_MEMORY {
     () => {7};
@@ -16,11 +17,13 @@ pub fn init_paging(
     asm::write_cr4(cr4 & !(1 << 17));
 
     //compatability mode must be entered to disable paging
-    gdt::enter_compatibility_mode();
+    compatability_mode::enter_compatibility_mode();
 
     //disable paging
     let cr0 = asm::read_cr0();
     asm::write_cr0(cr0 & !(1 << 31));
+
+    println!("{}", cr0);
 
     let mut l4_start:*mut u64 = core::ptr::null_mut();
     let mut l3_start:*mut u64 = core::ptr::null_mut();
@@ -110,13 +113,12 @@ pub fn init_paging(
             }
         }
     }
-
-    //enable paging
+;    //enable paging
     asm::write_cr3(l4_start as u64);
     asm::write_cr0(cr0);
 
     //return to long mode
-    gdt::exit_compatibility_mode();
+    compatability_mode::exit_compatibility_mode();
 
     //set cr4.pcide if it was set before
     asm::write_cr4(cr4);

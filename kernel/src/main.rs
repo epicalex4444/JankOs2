@@ -12,8 +12,6 @@ mod gdt;
 mod math;
 mod paging;
 mod print;
-mod math;
-mod gdt;
 mod interrupts;
 
 use print::Writer;
@@ -23,10 +21,11 @@ use crate::{gdt::init_gdt, interrupts::init_idt};
 #[no_mangle]
 pub extern "C" fn _start(boot_info: *const efi::BootInfo) -> ! {
     unsafe {
-        Writer::init((*boot_info).glyphbuffer, (*boot_info).framebuffer, false);
+        Writer::init((*boot_info).glyph_buffer, (*boot_info).frame_buffer, false);
         
         println!("Hello, World!");
 
+        //paging::init_paging((*boot_info).memory_map, (*boot_info).memory_map_size, (*boot_info).descriptor_size);
         init_gdt();
         init_idt();
 
