@@ -2,7 +2,14 @@
 
 load_idt:
    LIDT [rdi]
+   RET
+
+set_interrupts:
    STI
    RET
 
-global load_idt
+clear_interrupts:
+   CLI
+   RET
+
+global load_idt, set_interrupts, clear_interrupts

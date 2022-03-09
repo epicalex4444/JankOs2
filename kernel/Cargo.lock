@@ -14,10 +14,9 @@ dependencies = [
 [[package]]
 name = "lazy_static"
 version = "1.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
+source = "git+https://github.com/rust-lang-nursery/lazy-static.rs#7324c83a9212d6052993001dcd0ac5d617ae87ce"
 dependencies = [
- "spin 0.5.2",
+ "spin 0.7.1",
 ]
 
 [[package]]
@@ -43,9 +42,9 @@ checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
 
 [[package]]
 name = "spin"
-version = "0.5.2"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
+checksum = "13287b4da9d1207a4f4929ac390916d64eacfe236a487e9a9f5b3be392be5162"
 
 [[package]]
 name = "spin"

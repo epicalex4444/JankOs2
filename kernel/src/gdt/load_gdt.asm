@@ -22,5 +22,9 @@ reload_segments:
    MOV   SS, AX
    RET
 
-global load_gdt
-global reload_segments
+load_tss:
+   MOV AX, 0x30
+   LTR AX
+   RET
+
+global load_gdt, reload_segments, load_tss

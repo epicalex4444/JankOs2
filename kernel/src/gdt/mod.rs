@@ -1,6 +1,9 @@
-use crate::println;
-use core::mem::size_of;
-use lazy_static::{lazy_static, __Deref};
+mod tss;
+
+use crate::{println};
+use core::{mem::size_of, ops::DerefMut};
+use spin::Mutex;
+use tss::TSS;
 
 #[repr(C, packed)]
 struct GDTDescriptor {
@@ -13,7 +16,8 @@ struct Segment {
 }
 
 impl Segment {
-    pub fn new(access: u8, flags: u8, limit: u32) -> Segment {
+    #[inline]
+    const fn new(access: u8, flags: u8, limit: u32) -> Segment {
         let mut seg = (access as u64) << 40;
         seg |= ((flags & 0b00001111) as u64) << 52;
 
@@ -32,7 +36,7 @@ struct SysSegment {
 }
 
 impl SysSegment {
-    pub fn new(access: u8, flags: u8, limit: u32, base: u64) -> SysSegment {
+    pub const fn new(access: u8, flags: u8, limit: u32, base: u64) -> SysSegment {
         let mut seg_1 = (access as u64) << 40;
 
         seg_1 |= ((flags & 0b00001111) as u64) << 52;
@@ -46,51 +50,73 @@ impl SysSegment {
 
         let seg_2 = base & 0xFFFFFFFF00000000;
 
-        let mut sys_seg = SysSegment {
+        SysSegment {
             segment_first: seg_1,
             segment_second: seg_2,
-        };
-        sys_seg.set_base();
-        sys_seg.set_limit();
-        return sys_seg;
+        }
     }
 
-    fn set_base(&mut self) -> () {
-        self.segment_first |= ((self as *mut SysSegment) as u64 & 0xFFFF) << 16;
-        self.segment_first |= (((self as *mut SysSegment) as u64 & 0xFF0000) >> 16) << 32;
-        self.segment_first |= (((self as *mut SysSegment) as u64 & 0xFF000000) >> 20) << 56;
-
-        self.segment_second = ((self as *mut SysSegment) as u64 & 0xFFFFFFFF00000000) >> 32;
+    pub fn set_tss(&mut self, tss: &TSS) -> () {
+        self.set_base((tss as *const TSS) as u64);
+        self.set_limit(size_of::<TSS>() as u64);
     }
 
-    fn set_limit(&mut self) -> () {
-        let limit = size_of::<SysSegment>();
+    fn set_base(&mut self, addr: u64) -> () {
+        self.segment_first |= (addr & 0xFFFF) << 16;
+        self.segment_first |= ((addr & 0xFF0000) >> 16) << 32;
+        self.segment_first |= ((addr & 0xFF000000) >> 20) << 56;
+
+        self.segment_second = (addr & 0xFFFFFFFF00000000) >> 32;
+    }
+
+    fn set_limit(&mut self, limit: u64) -> () {
         self.segment_first |= ((limit & 0xFFFF) as u64) << 0;
         self.segment_first |= (((limit & 0xFFFF0000) >> 16) as u64) << 48;
     }
 }
 
 #[repr(C, packed)]
-struct GDTable {
+pub struct GDTable {
     null: Segment,
     kernel_code: Segment,
     kernel_data: Segment,
     user_null: Segment,
     user_code: Segment,
     user_data: Segment,
-    //task_state: SysSegment,
+    task_state: SysSegment,
 }
- 
-lazy_static! {
-    static ref TABLE: GDTable = GDTable {
-        null: Segment::new(0, 0, 0),
-        kernel_code: Segment::new(0x9A, 0xA, 0xFFFFF),
-        kernel_data: Segment::new(0x92, 0xA, 0xFFFFF),
-        user_null: Segment::new(0,0,0),
-        user_code: Segment::new(0x9A, 0xA, 0xFFFFF),
-        user_data: Segment::new(0x92, 0xA, 0xFFFFF),
-        //task_state: SysSegment::new(0x89, 0x0, 0, 0),
-    };
+
+impl GDTable {
+    pub const fn new() -> GDTable {
+        GDTable {
+            null: Segment::new(0, 0, 0),
+            kernel_code: Segment::new(0x9A, 0xA, 0xFFFFF),
+            kernel_data: Segment::new(0x92, 0xA, 0xFFFFF),
+            user_null: Segment::new(0, 0, 0),
+            user_code: Segment::new(0x9A, 0xA, 0xFFFFF),
+            user_data: Segment::new(0x92, 0xA, 0xFFFFF),
+            task_state: SysSegment::new(0x89, 0x0, 0, 0),
+        }
+    }
+
+    // Spawning new descriptors should not matter as only one will ever be in scope and the rest will be marked
+    // for override.
+    fn get_descriptor(&self) -> GDTDescriptor {
+        GDTDescriptor {
+            size: (size_of::<GDTable>() as u16) - 1,
+            offset: (self as *const GDTable) as u64,
+        }
+    }
+
+    pub fn load(&self) -> &Self {
+        unsafe {
+            load_gdt(&self.get_descriptor());
+            println!(0x0022FF22; "-- Loaded GDT");
+            reload_segments();
+            println!(0x0022FF22; "-- Reloaded CS registers");
+        }
+        self
+    }
 }
 
 extern "C" {
@@ -98,16 +124,33 @@ extern "C" {
     fn reload_segments() -> ();
 }
 
-pub fn init_gdt() -> () {
-    unsafe {
-        let gdt_desc = GDTDescriptor {
-            size: (size_of::<GDTable>() as u16) - 1,
-            offset: (TABLE.deref() as *const GDTable) as u64,
-        };
+pub static TABLE: Mutex<GDTable> = Mutex::new(GDTable::new());
+static TSS: Mutex<TSS> = Mutex::new(TSS::new());
 
-        load_gdt(&gdt_desc);
-        println!(0x0022FF22; "-- Loaded GDT");
-        reload_segments();
-        println!(0x0022FF22; "-- Reloaded CS registers");
-    }
+// ------- THE TEMPORARY ZONE
+const STACK_SIZE: usize = 4096;
+static DUMMY_STACK:Mutex<u64> = Mutex::new(0);
+
+fn init_dummy_stack(){
+    static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
+
+    let stack_start = unsafe { &STACK as *const [u8; STACK_SIZE]} as u64;
+    println!(0x00F55F22; "IST0 Stack start: {:#x}", stack_start);
+    let stack_end = stack_start + (STACK_SIZE as u64);
+    println!(0x00F55F22; "IST0 Stack end: {:#x}", stack_end);
+    *DUMMY_STACK.lock().deref_mut() = stack_end;
+}
+// -------- END TEMPORARY ZONE
+
+pub fn init_gdt() -> () {
+    let mut table = TABLE.lock();
+    let mut tss = TSS.lock();
+
+    table.task_state.set_tss(&*tss);
+
+    init_dummy_stack();
+    tss.interrupt_stack_table[0] = *DUMMY_STACK.lock();
+
+    table.load();
+    tss.load();  
 }

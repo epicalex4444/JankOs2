@@ -14,7 +14,6 @@
 use core::fmt;
 use core::{marker::PhantomData};
 
-
 /// # Gate
 /// 
 /// An interrupt gate is the data structure that defines the interrupts within the IDT
@@ -26,7 +25,7 @@ use core::{marker::PhantomData};
 pub struct Gate<F> {
     offset_low: u16,
     segment_selector: u16,
-    options: GateOptions,
+    pub options: GateOptions,
     offset_mid: u16,
     offset_high: u32,
     reserved: u32,
@@ -166,6 +165,11 @@ impl GateOptions{
         self.options &= !(1 << 7u8);
         self
     }
+
+    pub unsafe fn set_stack_index(&mut self, index: u8) -> &mut Self{
+        self.ist |= (index + 1) & 0b00000111;
+        self
+    }
 }
 
 /// # ExceptionStackFrame
@@ -193,9 +197,13 @@ impl fmt::Debug for ExceptionStackFrame{
     }
 }
 
-pub type Interrupt = extern "x86-interrupt" fn (stack_frame: &ExceptionStackFrame) -> !;
-pub type InterruptErr = extern "x86-interrupt" fn (stack_frame: &mut ExceptionStackFrame, error_code: u64) -> !;
-pub type InterruptPageFault = extern "x86-interrupt" fn(stack_frame: &mut ExceptionStackFrame, page_error: u64) -> !;
+pub type Interrupt = extern "x86-interrupt" fn (stack_frame: &ExceptionStackFrame) -> ();
+pub type Fault = extern "x86-interrupt" fn (stack_frame: &ExceptionStackFrame) -> ();
+pub type FaultErr = extern "x86-interrupt" fn (stack_frame: &ExceptionStackFrame, error_code: u64) -> ();
+pub type Trap = extern "x86-interrupt" fn (stack_frame: &ExceptionStackFrame) -> ();
+pub type Abort = extern "x86-interrupt" fn (stack_frame: &ExceptionStackFrame) -> !;
+pub type AbortErr = extern "x86-interrupt" fn (stack_frame: &ExceptionStackFrame, error_code: u64) -> !;
+pub type InterruptPageFault = extern "x86-interrupt" fn(stack_frame: &mut ExceptionStackFrame, page_error: u64) -> ();
 
 
 #[repr(C, packed)]
@@ -212,35 +220,35 @@ struct IDTDescriptor {
 /// Each interrupts is different and may require interrupts to be diabled upon entry, check [https://wiki.osdev.org/Exceptions] for more info
 #[repr(C, align(0x10))]
 pub struct IDT{
-    pub divide_by_zero: Gate<Interrupt>,
-    pub debug: Gate<Interrupt>,
+    pub divide_by_zero: Gate<Fault>,
+    pub debug: Gate<Fault>,
     pub non_maskable_interupt: Gate<Interrupt>,
-    pub breakpoint: Gate<Interrupt>,
-    pub overflow: Gate<Interrupt>,
-    pub bound_range_exceeded: Gate<Interrupt>,
-    pub invalid_opcode: Gate<Interrupt>,
-    pub device_not_available: Gate<Interrupt>,
-    pub double_fault: Gate<InterruptErr>,
-    coproc_segement_overrun: Gate<Interrupt>,
-    pub invalid_tss: Gate<InterruptErr>,
-    pub segment_not_present: Gate<InterruptErr>,
-    pub stack_segment_fault: Gate<InterruptErr>,
-    pub general_protecion_fault: Gate<InterruptErr>,
+    pub breakpoint: Gate<Trap>,
+    pub overflow: Gate<Trap>,
+    pub bound_range_exceeded: Gate<Fault>,
+    pub invalid_opcode: Gate<Fault>,
+    pub device_not_available: Gate<Fault>,
+    pub double_fault: Gate<AbortErr>,
+    coproc_segement_overrun: Gate<Fault>,
+    pub invalid_tss: Gate<FaultErr>,
+    pub segment_not_present: Gate<FaultErr>,
+    pub stack_segment_fault: Gate<FaultErr>,
+    pub general_protecion_fault: Gate<FaultErr>,
     pub page_fault: Gate<InterruptPageFault>,
-    reserved_1: Gate<Interrupt>,
-    pub x87_floating_point_exception: Gate<Interrupt>,
-    pub alignment_check: Gate<InterruptErr>,
-    pub machine_check: Gate<Interrupt>,
-    pub simd_floating_point_exception: Gate<Interrupt>,
-    pub virtualisation_exception: Gate<Interrupt>,
-    pub control_protection_exception: Gate<InterruptErr>,
-    reserved_2: [Gate<Interrupt>; 8],
-    pub hypervisor_injection_exception: Gate<Interrupt>,
-    pub vmm_communication_exception: Gate<InterruptErr>,
-    pub security_exceptoin: Gate<InterruptErr>,
-    reserved_3: Gate<Interrupt>,
-    triple_fault: Gate<Interrupt>,
-    pub fpu_error: Gate<Interrupt>,
+    reserved_1: Gate<Fault>,
+    pub x87_floating_point_exception: Gate<Fault>,
+    pub alignment_check: Gate<FaultErr>,
+    pub machine_check: Gate<Abort>,
+    pub simd_floating_point_exception: Gate<Fault>,
+    pub virtualisation_exception: Gate<Fault>,
+    pub control_protection_exception: Gate<FaultErr>,
+    reserved_2: [Gate<Fault>; 8],
+    pub hypervisor_injection_exception: Gate<Fault>,
+    pub vmm_communication_exception: Gate<FaultErr>,
+    pub security_exceptoin: Gate<FaultErr>,
+    reserved_3: Gate<Fault>,
+    triple_fault: Gate<Fault>,
+    pub fpu_error: Gate<Fault>,
     interrupts: [Gate<Interrupt>; 256 - 32]
 }
 
