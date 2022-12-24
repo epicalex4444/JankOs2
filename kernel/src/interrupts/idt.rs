@@ -242,14 +242,14 @@ pub struct IDT{
     pub simd_floating_point_exception: Gate<Fault>,
     pub virtualisation_exception: Gate<Fault>,
     pub control_protection_exception: Gate<FaultErr>,
-    reserved_2: [Gate<Fault>; 8],
+    reserved_2: [Gate<Fault>; 6],
     pub hypervisor_injection_exception: Gate<Fault>,
     pub vmm_communication_exception: Gate<FaultErr>,
     pub security_exceptoin: Gate<FaultErr>,
     reserved_3: Gate<Fault>,
-    triple_fault: Gate<Fault>,
-    pub fpu_error: Gate<Fault>,
-    interrupts: [Gate<Interrupt>; 256 - 32]
+    //triple_fault: Gate<Fault>,
+    //pub fpu_error: Gate<Fault>,
+    pub interrupts: [Gate<Interrupt>; 256 - 32]
 }
 
 impl IDT{
@@ -284,13 +284,13 @@ impl IDT{
             simd_floating_point_exception: Gate::empty(),
             virtualisation_exception: Gate::empty(),
             control_protection_exception: Gate::empty(),
-            reserved_2: [Gate::empty(); 8],
+            reserved_2: [Gate::empty(); 6],
             hypervisor_injection_exception: Gate::empty(),
             vmm_communication_exception: Gate::empty(),
             security_exceptoin: Gate::empty(),
             reserved_3: Gate::empty(),
-            triple_fault: Gate::empty(),
-            fpu_error: Gate::empty(),
+            //triple_fault: Gate::empty(),
+            //fpu_error: Gate::empty(),
             interrupts: [Gate::empty(); 256 - 32]
         }
     }

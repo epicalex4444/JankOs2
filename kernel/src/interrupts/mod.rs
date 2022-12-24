@@ -5,7 +5,8 @@
 mod idt;
 
 use lazy_static::lazy_static;
-use crate::{println};
+use crate::io::{keyboard, keyboard::KeyStroke, PIC, PS2};
+use crate::{println, print};
 use idt::{IDT, GateOptions, ExceptionStackFrame};
 
 lazy_static!{
@@ -18,6 +19,7 @@ lazy_static!{
             .options.set_stack_index(0);
         }
         idt.general_protecion_fault.init(general_protection_handler as u64, GateOptions::new_trap_options());
+        idt.interrupts[1].init(keyboard_interrupts_handler as u64, GateOptions::new_interrupt_options());
         idt
     };
 }
@@ -32,7 +34,7 @@ pub fn init_idt(){
         clear_interrupts();   
         IDTABLE.load();
         println!(0x0022FF22; "-- Successfully initialised idt");
-        set_interrupts();
+        //set_interrupts();
     }
 }
 
@@ -61,4 +63,12 @@ extern "x86-interrupt" fn general_protection_handler(stack_frame: ExceptionStack
     println!("{:#?}",stack_frame);
     println!("Error code: {:#x}", error_code);
     loop{}
+}
+
+extern "x86-interrupt" fn keyboard_interrupts_handler(_stack_frame: ExceptionStackFrame) -> () {
+    let scancode = PS2.lock().read_data();
+    let key_stroke = PS2.lock().keystroke_from_ps2_scancode(scancode);
+
+    keyboard::handle_keyboard_for_typing(key_stroke);
+    PIC.lock().end_master();
 }

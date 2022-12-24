@@ -4,6 +4,7 @@
 #![feature(panic_info_message)]
 #![feature(once_cell)]
 #![feature(abi_x86_interrupt)]
+#![feature(exclusive_range_pattern)]
 #![allow(dead_code)]
 
 mod asm;
@@ -12,12 +13,16 @@ mod gdt;
 mod math;
 mod paging;
 mod print;
-mod io;
 mod interrupts;
+mod io;
 
 use print::Writer;
 use core::arch::asm;
 use crate::{gdt::{init_gdt}, interrupts::init_idt};
+
+extern "C"{
+    fn set_interrupts() -> ();
+}
 
 #[no_mangle]
 pub extern "C" fn _start(boot_info: *const efi::BootInfo) -> ! {
@@ -31,26 +36,17 @@ pub extern "C" fn _start(boot_info: *const efi::BootInfo) -> ! {
         init_gdt();
         init_idt();
 
+        io::init_pic();
+        set_interrupts();
+
         // Calls interrupt 0x03 - breakpoint
         asm!("INT 0x03");
-        //asm!("INT 0x08");
-
-        // fn stack_overflow_1(){
-        //     let y: [u64; 1000000000] = [1; 1000000000];
-        //     println!("{:#?}",&y)
-        // }
-
-        fn stack_overflow_2() -> u32{
-            return stack_overflow_2();
-        }
-
-        //stack_overflow_1();
-        let g = stack_overflow_2();
 
         println!("GoodBye, World!");
 
         loop {
-            asm::hlt();
+            asm::nop();
+            //asm::hlt();
         }
     }
 }
