@@ -1,5 +1,9 @@
 pub(super) mod ps2;
 
+//use alloc::collections::btree_map::Keys;
+
+use crate::{print};
+
 #[derive(Debug)]
 pub enum KeyStroke {
     Pressed,
@@ -215,11 +219,110 @@ pub enum State {
     Inactive,
 }
 
-struct KeyState {
-    code: KeyCode,
-    state: State
+impl State {
+    pub fn set_state_from_stroke(&mut self, stroke: KeyStroke) -> () {
+        match stroke {
+            KeyStroke::Pressed => {*self = State::Active;},
+            KeyStroke::Released => {*self = State::Inactive;},
+            KeyStroke::Unknown => {*self = State::Active;}
+        }
+    }
+
+    pub fn switch_state_from_stroke(&mut self, stroke: KeyStroke) -> () {
+        match stroke {
+            KeyStroke::Pressed => {*self = State::Active;},
+            KeyStroke::Released => {},
+            KeyStroke::Unknown => {}
+        }
+    }
+
+    fn switch_state(&mut self) -> () {
+        match self {
+            State::Active => {*self = State::Inactive;},
+            State::Inactive => {*self = State::Active;}
+        }
+    }
+
+    pub fn is_active(&self) -> bool {
+        match self {
+            State::Active => true,
+            State::Inactive => false
+        }
+    }
 }
 
 pub struct KeysState {
-    
+    shift: State,
+    ctrl: State,
+    caps_lock: State,
+    alt: State,
+    num_lock: State,
+}
+
+impl KeysState {
+
+    pub const fn new() -> Self {
+        Self{
+            shift: State::Inactive,
+            ctrl: State::Inactive,
+            caps_lock: State::Inactive,
+            alt: State::Inactive,
+            num_lock:State::Inactive
+        }
+    }
+
+    pub fn handle_key(&mut self, key: KeyAction) -> () {
+        match key.code {
+            KeyCode::AltLeft => {self.alt.set_state_from_stroke(key.stroke)},
+            KeyCode::AltRight => {self.alt.set_state_from_stroke(key.stroke)},
+            KeyCode::ShiftLeft => {self.shift.set_state_from_stroke(key.stroke)},
+            KeyCode::ShiftRight => {self.shift.set_state_from_stroke(key.stroke)},
+            KeyCode::CapsLock => {self.caps_lock.switch_state_from_stroke(key.stroke)},
+            KeyCode::CtrlLeft => {self.ctrl.set_state_from_stroke(key.stroke)},
+            KeyCode::CtrlRight => {self.ctrl.set_state_from_stroke(key.stroke)},
+            KeyCode::NumLock => {self.num_lock.switch_state_from_stroke(key.stroke)},
+            _ => {}            
+        }
+    }
+}
+
+static mut keysState: KeysState = KeysState::new();
+
+pub fn handle_keyboard_for_typing(key_stroke: KeyAction){
+    match key_stroke.stroke {
+        KeyStroke::Pressed => {
+            match key_stroke.code.character_key_to_char(){
+                Some(_c) => {}
+                None => {unsafe{keysState.handle_key(key_stroke)}}
+            }
+        },
+        KeyStroke::Released => {
+            let char = key_stroke.code.character_key_to_char();
+            if let Some(c) = char{
+                handle_char(c);
+            }
+            else {
+                unsafe{keysState.handle_key(key_stroke)}
+            }
+            
+        },
+        KeyStroke::Unknown => {}
+    }
+}
+
+fn handle_char(c: char){
+    //
+    unsafe {
+        if keysState.shift.is_active() && keysState.caps_lock.is_active() {
+            print!{"{}", c};
+        }
+        else if keysState.shift.is_active() || keysState.caps_lock.is_active() {
+            print!("{}",c.to_ascii_uppercase());
+        }
+        else{
+            print!("{}",c);
+        }
+    }
+
+
 }

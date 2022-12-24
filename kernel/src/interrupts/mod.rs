@@ -5,7 +5,7 @@
 mod idt;
 
 use lazy_static::lazy_static;
-use crate::io::{keyboard::KeyStroke, PIC, PS2};
+use crate::io::{keyboard, keyboard::KeyStroke, PIC, PS2};
 use crate::{println, print};
 use idt::{IDT, GateOptions, ExceptionStackFrame};
 
@@ -69,22 +69,6 @@ extern "x86-interrupt" fn keyboard_interrupts_handler(_stack_frame: ExceptionSta
     let scancode = PS2.lock().read_data();
     let key_stroke = PS2.lock().keystroke_from_ps2_scancode(scancode);
 
-
-    match key_stroke.stroke {
-        KeyStroke::Pressed => {
-            
-        },
-        KeyStroke::Released => {
-
-            if let Some(character) = key_stroke.code.character_key_to_char(){
-                print!("{}",character);
-            }
-            else if let Some(num) = key_stroke.code.number_key_to_int(){
-                print!("{}", num);
-            }
-            
-        },
-        KeyStroke::Unknown => {}
-    }
+    keyboard::handle_keyboard_for_typing(key_stroke);
     PIC.lock().end_master();
 }

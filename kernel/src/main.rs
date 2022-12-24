@@ -42,8 +42,6 @@ pub extern "C" fn _start(boot_info: *const efi::BootInfo) -> ! {
         // Calls interrupt 0x03 - breakpoint
         asm!("INT 0x03");
 
-        
-
         println!("GoodBye, World!");
 
         loop {
