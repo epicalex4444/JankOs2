@@ -60,7 +60,7 @@ uint8_t* load_font(EFI_FILE_HANDLE font) {
 			|| psf1_hdr.magic[1] != PSF1_MAGIC1
 			|| psf1_hdr.mode != PSF1_MODEHASTAB
 			|| psf1_hdr.charsize != 16) {
-		Print(L"incorrect font format");
+		Print(L"incorrect font format\n");
 		return NULL;
 	}
 
@@ -156,7 +156,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_tab
 	//load glyphBuffer
 	uint8_t* glyph_buffer = load_font(font);
 	if (glyph_buffer == NULL) {
-		Print(L"error loading glyph buffer");
+		Print(L"error loading glyph buffer\n");
 		return EFI_LOAD_ERROR;
 	}
 
@@ -177,7 +177,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_tab
 	boot_info.frame_buffer = &frame_buffer;
 	boot_info.memory_map = memory_map;
 	boot_info.memory_map_size = memory_map_size;
-	boot_info.descriptor_size = memory_map_size;
+	boot_info.descriptor_size = descriptor_size;
 	boot_info.glyph_buffer = glyph_buffer;
 
 	//define KernelStart function
