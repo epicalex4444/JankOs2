@@ -1,11 +1,9 @@
 //! # Module containing all interrupts and functions to initialise the IDT
-//! 
-//! 
 
 mod idt;
 
 use lazy_static::lazy_static;
-use crate::io::{keyboard, keyboard::KeyStroke, PIC, PS2};
+use crate::io::{keyboard, PIC, PS2};
 use crate::{println};
 use idt::{IDT, GateOptions, ExceptionStackFrame};
 

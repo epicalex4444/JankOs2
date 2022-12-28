@@ -36,6 +36,7 @@ pub extern "C" fn _start(boot_info: *const efi::BootInfo) -> ! {
         init_gdt();
         init_idt();
 
+        // Do we want a microkernel? if so this should be a service.
         io::init_pic();
         set_interrupts();
 
@@ -56,6 +57,8 @@ pub extern "C" fn _start(boot_info: *const efi::BootInfo) -> ! {
     }
 }
 
+
+// Taken from https://os.phil-opp.com/double-fault-exceptions/#kernel-stack-overflow
 #[allow(unconditional_recursion)]
 fn stack_overflow() {
     stack_overflow(); // for each recursion, the return address is pushed
