@@ -13,12 +13,6 @@ extern "C"{
     fn load_tss() -> ();
 }
 
-fn load_tss_2(){
-    unsafe{
-        core::arch::asm!("ltr {0:x}", in(reg) 0x30, options(nomem, nostack, preserves_flags))
-    }    
-}
-
 impl TSS{
 
     pub const fn new() -> TSS{
@@ -44,6 +38,6 @@ impl TSS{
     }
 
     pub fn load(&self){
-        load_tss_2();
+        unsafe {load_tss();}
     }
 }

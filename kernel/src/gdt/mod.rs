@@ -37,11 +37,15 @@ struct SysSegment {
 
 impl SysSegment {
     pub const fn new(access: u8, flags: u8, limit: u32, base: u64) -> SysSegment {
+        // Push access byte into bites 47-40 of the first 64-bit segment
         let mut seg_1 = (access as u64) << 40;
 
+        // Push flags into bits 55-52
         seg_1 |= ((flags & 0b00001111) as u64) << 52;
 
+        // Push first 16 limit bits 
         seg_1 |= ((limit & 0xFFFF) as u64) << 0;
+        // Push last 4 limit bits to 51 - 48
         seg_1 |= (((limit & 0xF0000) >> 16) as u64) << 48;
 
         seg_1 |= (base & 0xFFFF) << 16;
@@ -80,7 +84,7 @@ pub struct GDTable {
     null: Segment,
     kernel_code: Segment,
     kernel_data: Segment,
-    user_null: Segment,
+    // user_null: Segment,
     user_code: Segment,
     user_data: Segment,
     task_state: SysSegment,
@@ -92,10 +96,10 @@ impl GDTable {
             null: Segment::new(0, 0, 0),
             kernel_code: Segment::new(0x9A, 0xA, 0xFFFFF),
             kernel_data: Segment::new(0x92, 0xA, 0xFFFFF),
-            user_null: Segment::new(0, 0, 0),
+            // user_null: Segment::new(0, 0, 0),
             user_code: Segment::new(0x9A, 0xA, 0xFFFFF),
             user_data: Segment::new(0x92, 0xA, 0xFFFFF),
-            task_state: SysSegment::new(0x89, 0x0, 0, 0),
+            task_state: SysSegment::new(0x89, 0x4, 0, 0),
         }
     }
 
@@ -128,16 +132,16 @@ pub static TABLE: Mutex<GDTable> = Mutex::new(GDTable::new());
 static TSS: Mutex<TSS> = Mutex::new(TSS::new());
 
 // ------- THE TEMPORARY ZONE
-const STACK_SIZE: usize = 4096;
+const STACK_SIZE: usize = 4096 * 5;
 static DUMMY_STACK:Mutex<u64> = Mutex::new(0);
 
 fn init_dummy_stack(){
     static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
 
     let stack_start = unsafe { &STACK as *const [u8; STACK_SIZE]} as u64;
-    println!(0x00F55F22; "IST0 Stack start: {:#x}", stack_start);
+    println!(0x00F55F22; "IST1 Stack start: {:#x}", stack_start);
     let stack_end = stack_start + (STACK_SIZE as u64);
-    println!(0x00F55F22; "IST0 Stack end: {:#x}", stack_end);
+    println!(0x00F55F22; "IST1 Stack end: {:#x}", stack_end);
     *DUMMY_STACK.lock().deref_mut() = stack_end;
 }
 // -------- END TEMPORARY ZONE

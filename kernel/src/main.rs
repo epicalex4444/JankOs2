@@ -41,18 +41,30 @@ pub extern "C" fn _start(boot_info: *const efi::BootInfo) -> ! {
 
         // Calls interrupt 0x03 - breakpoint
         asm!("INT 0x03");
+        
+        stack_overflow();
+
+        // Call div by zero interrupt (should not be possible after stack overflow)
+        asm!("int 0x0");
 
         println!("GoodBye, World!");
 
         loop {
             asm::nop();
-            //asm::hlt();
+            // asm::hlt();
         }
     }
 }
 
+#[allow(unconditional_recursion)]
+fn stack_overflow() {
+    stack_overflow(); // for each recursion, the return address is pushed
+    volatile::Volatile::new(0).read(); // prevent tail recursion optimizations
+}
+
 #[panic_handler]
 fn panic(_info: &core::panic::PanicInfo) -> ! {
+    println!("Kenel panic!");
     println!("{}", _info);
     loop {
         asm::hlt();
