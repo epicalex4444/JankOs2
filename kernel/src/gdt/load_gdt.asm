@@ -23,7 +23,7 @@ reload_segments:
    RET
 
 load_tss:
-   MOV AX, 0x30
+   MOV AX, 0x28
    LTR AX
    RET
 

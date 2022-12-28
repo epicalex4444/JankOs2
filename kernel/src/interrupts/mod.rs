@@ -1,17 +1,16 @@
 //! # Module containing all interrupts and functions to initialise the IDT
-//! 
-//! 
 
 mod idt;
 
 use lazy_static::lazy_static;
-use crate::io::{keyboard, keyboard::KeyStroke, PIC, PS2};
-use crate::{println, print};
+use crate::io::{keyboard, PIC, PS2};
+use crate::{println};
 use idt::{IDT, GateOptions, ExceptionStackFrame};
 
 lazy_static!{
     static ref IDTABLE: IDT = {
         let mut idt = IDT::new();
+        // Add handlers to IDT
         idt.breakpoint.init(breakpoint_handler as u64, GateOptions::new_trap_options());
         idt.page_fault.init(page_fault_handler as u64, GateOptions::new_interrupt_options());
         unsafe{
@@ -19,6 +18,8 @@ lazy_static!{
             .options.set_stack_index(0);
         }
         idt.general_protecion_fault.init(general_protection_handler as u64, GateOptions::new_trap_options());
+
+        // Add keyboard interrupt to the free interupt descriptor
         idt.interrupts[1].init(keyboard_interrupts_handler as u64, GateOptions::new_interrupt_options());
         idt
     };
@@ -34,7 +35,7 @@ pub fn init_idt(){
         clear_interrupts();   
         IDTABLE.load();
         println!(0x0022FF22; "-- Successfully initialised idt");
-        //set_interrupts();
+        // set_interrupts();
     }
 }
 
