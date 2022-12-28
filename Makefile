@@ -2,7 +2,7 @@ BOOTLOADER := bootloader/bootx64.efi
 BOOTLOADER_DEPS := bootloader/bootx64.c
 KERNEL := kernel/target/x86_64-kernel/release/kernel
 KERNEL_DEPS := $(shell find -path "./kernel/src/*.rs") $(shell find -path "./kernel/src/*.asm")
-IMG := JankOs.img
+IMG := JankOS.img
 OVMF := /usr/share/ovmf/x64/OVMF.fd
 FONT := zap-light16.psf
 

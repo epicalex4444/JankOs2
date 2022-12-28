@@ -3,7 +3,7 @@
 make  
 clang (clang and ld.lld commands)  
 cargo  
-objcopy
+objcopy  
 mtools (mformat, mmd and mcopy commands)  
 nasm  
 ar  
