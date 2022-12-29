@@ -1,11 +1,11 @@
-use crate::{asm, println};
-use crate::math::*;
 use crate::efi::EFI_MEMORY_DESCRIPTOR;
+use crate::math::RoundMath;
 
 const EFI_CONVENTIONAL_MEMORY:u32 = 7;
 
 static mut BITMAP_START:*const u64 = 0 as *const u64;
 
+//calculates how many pages there are in your system assuming 4096 byte pages
 fn total_pages(
     memory_map: *const EFI_MEMORY_DESCRIPTOR, 
     memory_map_size:u64, 
@@ -21,6 +21,8 @@ fn total_pages(
     pages
 }
 
+//reserves continous line of pages
+//starts at the page that address is located in
 fn reserve_pages(address:u64, pages:u64) -> () {
     let start_page:u64 = address / 4096;
 
@@ -48,7 +50,10 @@ fn reserve_pages(address:u64, pages:u64) -> () {
     }
 }
 
-fn free_pages(address:u64, pages:u64) -> () {
+//frees continous line of pages
+//starts at the page that address is located in
+//note this can be used to free any memory including things like the kernel
+pub fn free_pages(address:u64, pages:u64) -> () {
     let start_page:u64 = address / 4096;
 
     let start_offset:u64 = start_page / 64;
@@ -75,7 +80,10 @@ fn free_pages(address:u64, pages:u64) -> () {
     }
 }
 
-fn request_pages(
+//finds a continous line of pages
+//reserves the pages
+//then returns the start address of the first page
+pub fn request_pages(
     memory_map: *const EFI_MEMORY_DESCRIPTOR, 
     memory_map_size:u64, 
     descriptor_size:u64,
@@ -96,15 +104,17 @@ fn request_pages(
     0 as *const u64
 }
 
-fn init_page_frame_allocator(
+//initiliase the page frame allocator
+//must be called before using request_pages and free_pages
+//sets up bitmap that keeps track of which pages are reserved and free
+//also parses the memory map and reserves all the memory that we cant use
+pub fn init_page_frame_allocator(
     memory_map: *const EFI_MEMORY_DESCRIPTOR, 
     memory_map_size:u64, 
     descriptor_size:u64
 ) -> () {
     let total_pages:u64 = total_pages(memory_map, memory_map_size, descriptor_size);
     let pages_required:u64 = total_pages.ceil(4096) / 4096;
-
-    println!("total_pages: {}\npages_required: {}", total_pages, pages_required);
 
     for i in 0..memory_map_size / descriptor_size {
         let descriptor: *const EFI_MEMORY_DESCRIPTOR = (memory_map as u64 + i * descriptor_size) as *const EFI_MEMORY_DESCRIPTOR;
@@ -119,7 +129,6 @@ fn init_page_frame_allocator(
     }
 
     unsafe {
-        println!("BITMAP_START: {:#0x}", BITMAP_START as u64);
         free_pages(0, total_pages);
         reserve_pages(BITMAP_START as u64, pages_required);
     }
@@ -132,66 +141,5 @@ fn init_page_frame_allocator(
                 reserve_pages((*descriptor).physical_start, (*descriptor).number_of_pages);
             }
         }
-    }
-}
-
-pub fn init_paging(
-    memory_map: *const EFI_MEMORY_DESCRIPTOR, 
-    memory_map_size:u64, 
-    descriptor_size:u64
-) -> () {
-    //each paging structure is 4096 bytes in size
-    //in paging level 4 it has 512 enties with 8 bytes each
-
-    //linear adress format
-    //47:39, pml4 index
-    //38:30, pml3 index
-    //29:21, pml2 index
-    //20:12, pml1 index
-    //12:0, page offset
-
-    //48 bit linear addresses, to 52 bit physical addresses
-
-    //format of cr3
-    //3, page write through
-    //4, page level cache disable
-    //11:5, ignored
-    //51:12, physical address of pml4
-    //63:52, reserved must be 0
-
-    //format of pml4, pml3, pml2 and pml1 entries
-    //0, must be 1
-    //1, read/write
-    //2, user/supervisor
-    //3, page level write through
-    //4, page level cache disable
-    //5, accessed
-    //6, ignored
-    //7, must be 0
-    //11:8 ignored
-    //52:12 physical address to next level down page
-    //62:52 ignored
-    //63 execute disable
-
-    //figure out which bits need to be set
-    //figure out efi memory map
-    //figure out how to make the paging structure
-
-    init_page_frame_allocator(memory_map, memory_map_size, descriptor_size);
-
-    unsafe {
-        let mem_write:*mut u64 = BITMAP_START as *mut u64;
-
-        for i in 0..10 {
-            println!("{:#0b}", *mem_write.offset(i));
-        }
-        println!("");
-
-        reserve_pages(8192, 256);
-
-        for i in 0..10 {
-            println!("{:#0b}", *mem_write.offset(i));
-        }
-        println!("");
     }
 }
