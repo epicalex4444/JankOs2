@@ -2,9 +2,7 @@ use crate::{asm, println};
 use crate::math::*;
 use crate::efi::EFI_MEMORY_DESCRIPTOR;
 
-macro_rules! EFI_CONVENTIONAL_MEMORY {
-    () => {7};
-}
+const EFI_CONVENTIONAL_MEMORY:u32 = 7;
 
 static mut BITMAP_START:*const u64 = 0 as *const u64;
 
@@ -23,22 +21,6 @@ fn total_pages(
     pages
 }
 
-pub fn reserve_page(address:u64) -> () {
-    let page:u64 = address / 4096;
-    unsafe {
-        let mem_write:*mut u64 = BITMAP_START.offset((page / 64) as isize) as *mut u64;
-        *mem_write = *mem_write | (1 << page % 64);
-    }
-}
-
-pub fn free_page(address:u64) -> () {
-    let page:u64 = address / 4096;
-    unsafe {
-        let mem_write:*mut u64 = BITMAP_START.offset((page / 64) as isize) as *mut u64;
-        *mem_write = *mem_write & !(1 << page % 64);
-    }
-}
-
 fn reserve_pages(address:u64, pages:u64) -> () {
     let start_page:u64 = address / 4096;
 
@@ -49,7 +31,7 @@ fn reserve_pages(address:u64, pages:u64) -> () {
     let end_mask:u64 = (1 << ((start_page + pages) % 64)) - 1;
     
     unsafe {
-        let mem_write:*mut u64 = BITMAP_START.offset((start_offset) as isize) as *mut u64;
+        let mem_write:*mut u64 = BITMAP_START.offset(start_offset as isize) as *mut u64;
 
         if start_offset == end_offset {
             *mem_write |= !start_mask ^ end_mask;
@@ -58,8 +40,8 @@ fn reserve_pages(address:u64, pages:u64) -> () {
 
         *mem_write |= start_mask;
 
-        for i in 0..end_offset - start_offset - 1 {
-            *mem_write.offset((start_offset + i + 1) as isize) = 0xFFFFFFFFFFFFFFFF;
+        for i in 1..end_offset - start_offset {
+            *mem_write.offset(i as isize) = 0xFFFFFFFFFFFFFFFF;
         }
 
         *mem_write.offset(end_offset as isize) |= end_mask;
@@ -76,7 +58,7 @@ fn free_pages(address:u64, pages:u64) -> () {
     let end_mask:u64 = (1 << ((start_page + pages) % 64)) - 1;
     
     unsafe {
-        let mem_write:*mut u64 = BITMAP_START.offset((start_offset) as isize) as *mut u64;
+        let mem_write:*mut u64 = BITMAP_START.offset(start_offset as isize) as *mut u64;
 
         if start_offset == end_offset {
             *mem_write &= !(!start_mask ^ end_mask);
@@ -85,8 +67,8 @@ fn free_pages(address:u64, pages:u64) -> () {
 
         *mem_write &= !start_mask;
 
-        for i in 0..end_offset - start_offset - 1 {
-            *mem_write.offset((start_offset + i + 1) as isize) = 0;
+        for i in 1..end_offset - start_offset {
+            *mem_write.offset(i as isize) = 0;
         }
 
         *mem_write.offset(end_offset as isize) &= !end_mask;
@@ -102,7 +84,7 @@ fn request_pages(
     for i in 0..memory_map_size / descriptor_size {
         let descriptor: *const EFI_MEMORY_DESCRIPTOR = (memory_map as u64 + i * descriptor_size) as *const EFI_MEMORY_DESCRIPTOR;
         unsafe {
-            if (*descriptor).r#type == EFI_CONVENTIONAL_MEMORY!()
+            if (*descriptor).r#type == EFI_CONVENTIONAL_MEMORY
                     && (*descriptor).physical_start >= 0x1000000
                     && (*descriptor).number_of_pages >= pages {
                 reserve_pages((*descriptor).physical_start, pages);
@@ -127,7 +109,7 @@ fn init_page_frame_allocator(
     for i in 0..memory_map_size / descriptor_size {
         let descriptor: *const EFI_MEMORY_DESCRIPTOR = (memory_map as u64 + i * descriptor_size) as *const EFI_MEMORY_DESCRIPTOR;
         unsafe {
-            if (*descriptor).r#type == EFI_CONVENTIONAL_MEMORY!()
+            if (*descriptor).r#type == EFI_CONVENTIONAL_MEMORY
                     && (*descriptor).physical_start >= 0x1000000
                     && (*descriptor).number_of_pages >= pages_required {
                 BITMAP_START = (*descriptor).physical_start as *const u64;
@@ -138,14 +120,14 @@ fn init_page_frame_allocator(
 
     unsafe {
         println!("BITMAP_START: {:#0x}", BITMAP_START as u64);
-        free_pages(BITMAP_START as u64, total_pages);
+        free_pages(0, total_pages);
         reserve_pages(BITMAP_START as u64, pages_required);
     }
 
     for i in 0..memory_map_size / descriptor_size {
         let descriptor: *const EFI_MEMORY_DESCRIPTOR = (memory_map as u64 + i * descriptor_size) as *const EFI_MEMORY_DESCRIPTOR;
         unsafe {
-            if (*descriptor).r#type != EFI_CONVENTIONAL_MEMORY!()
+            if (*descriptor).r#type != EFI_CONVENTIONAL_MEMORY
                     && (*descriptor).physical_start < 0x1000000 {
                 reserve_pages((*descriptor).physical_start, (*descriptor).number_of_pages);
             }
@@ -196,4 +178,20 @@ pub fn init_paging(
     //figure out how to make the paging structure
 
     init_page_frame_allocator(memory_map, memory_map_size, descriptor_size);
+
+    unsafe {
+        let mem_write:*mut u64 = BITMAP_START as *mut u64;
+
+        for i in 0..10 {
+            println!("{:#0b}", *mem_write.offset(i));
+        }
+        println!("");
+
+        reserve_pages(8192, 256);
+
+        for i in 0..10 {
+            println!("{:#0b}", *mem_write.offset(i));
+        }
+        println!("");
+    }
 }
