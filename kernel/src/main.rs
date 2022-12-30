@@ -1,11 +1,14 @@
 #![no_std]
 #![no_main]
-#![feature(int_log)]
 #![feature(panic_info_message)]
 #![feature(once_cell)]
 #![feature(abi_x86_interrupt)]
 #![feature(exclusive_range_pattern)]
+#![feature(custom_test_frameworks)]
+#![test_runner(crate::test_runner)]
 #![allow(dead_code)]
+#![reexport_test_harness_main = "test_main"]
+
 
 mod asm;
 mod efi;
@@ -35,6 +38,9 @@ pub extern "C" fn _start(boot_info: *const efi::BootInfo) -> ! {
 
         init_gdt();
         init_idt();
+
+        #[cfg(test)]
+        test_main();
 
         // Do we want a microkernel? if so this should be a service.
         io::init_pic();
@@ -72,4 +78,19 @@ fn panic(_info: &core::panic::PanicInfo) -> ! {
     loop {
         asm::hlt();
     }
+}
+
+#[cfg(test)]
+fn test_runner(tests: &[&dyn Fn()]) {
+    println!("Running {} tests", tests.len());
+    for test in tests {
+        test();
+    }
+}
+
+#[test_case]
+fn trivial_assertion() {
+    print!("trivial assertion... ");
+    assert_eq!(1, 0);
+    println!("[ok]");
 }

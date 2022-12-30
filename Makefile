@@ -6,7 +6,7 @@ IMG := JankOS.img
 OVMF := /usr/share/ovmf/x64/OVMF.fd
 FONT := zap-light16.psf
 
-.PHONY: all qemu qemu_debug clean
+.PHONY: all run.img qemu qemu_debug clean
 
 all: $(IMG)
 
@@ -24,6 +24,20 @@ $(IMG): $(BOOTLOADER) $(KERNEL) $(FONT)
 	mcopy -i $@ $(BOOTLOADER) ::/efi/boot
 	mcopy -i $@ $(KERNEL) ::
 	mcopy -i $@ $(FONT) ::
+
+run.img: $(BOOTLOADER) $(FONT)
+	@echo testing binary at $(filter-out $@,$(MAKECMDGOALS))
+	cp $(filter-out $@,$(MAKECMDGOALS)) kernel/kernel
+	dd if=/dev/zero of=$@.img bs=1k count=2880
+	mformat -i $@ -f 2880 ::
+	mmd -i $@ ::/efi
+	mmd -i $@ ::/efi/boot
+	mcopy -i $@ $(BOOTLOADER) ::/efi/boot
+	mcopy -i $@ kernel/kernel ::
+	mcopy -i $@ $(FONT) ::
+	qemu-system-x86_64 -drive file=run.img,format=raw -bios $(OVMF) -net none
+%:
+	@:
 
 qemu: $(IMG) $(OVMF)
 	qemu-system-x86_64 -drive file=$(IMG),format=raw -bios $(OVMF) -net none
